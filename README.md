@@ -120,6 +120,52 @@ public class MyPlugin extends JavaPlugin {
 
 ---
 
+## Maven / Gradle Installation
+
+To include PrismaticAPI to the project, add the following repository and dependency to your build configuration. Replace `${version}` with the desired version tag.
+
+### Maven
+
+Add the repository and dependency to your `pom.xml`:
+
+```xml
+<repositories>
+    <repository>
+        <id>croabeast-repo</id>
+        <url>https://croabeast.github.io/repo/</url>
+    </repository>
+</repositories>
+
+<dependencies>
+    <dependency>
+        <groupId>me.croabeast</groupId>
+        <artifactId>PrismaticAPI</artifactId>
+        <version>${version}</version>
+        <scope>compile</scope>
+    </dependency>
+</dependencies>
+```
+
+### Gradle
+
+Add the repository and dependency to your `build.gradle`:
+
+```groovy
+repositories {
+    maven {
+        url "https://croabeast.github.io/repo/"
+    }
+}
+
+dependencies {
+    implementation "me.croabeast:PrismaticAPI:${version}"
+}
+```
+
+Replace `${version}` with the appropriate module version.
+
+---
+
 ## Conclusion
 
 **PrismaticAPI** consolidates advanced color manipulation and text formatting functions into a single, easy-to-use API. Whether you need to create eye-catching gradients, implement dynamic rainbow effects, or simply clean up formatted text, PrismaticAPI provides the tools to do so effectively. Its support for both legacy and modern RGB formats ensures broad compatibility across different server versions and player clients.
