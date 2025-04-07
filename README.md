@@ -8,9 +8,6 @@ PrismaticAPI is a powerful, versatile utility designed to enhance text formattin
 
 The **PrismaticAPI** package offers a suite of methods to:
 
-- **Map Colors:**  
-  Convert AWT `Color` objects to Bukkit `ChatColor` using a predefined color map, ensuring that both legacy and modern RGB color support are handled.
-
 - **Apply Color Effects:**  
   Apply gradient and rainbow effects to strings. These methods generate arrays of `ChatColor` objects that are then applied character-by-character to create smooth color transitions.
 
@@ -51,23 +48,24 @@ All these functionalities are provided in a single, unified API that makes it si
 package com.example.myplugin;
 
 import me.croabeast.prismatic.PrismaticAPI;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class MyPlugin extends JavaPlugin {
 
-    @Override
-    public void onEnable() {
-        // Example player (could be obtained from an event)
-        Player player = /* get player reference */;
-        
-        // Colorize a message using PrismaticAPI
-        String message = "&aHello, &bworld!";
-        String coloredMessage = PrismaticAPI.colorize(player, message);
-        
-        // Send the colorized message
-        player.sendMessage(coloredMessage);
-    }
+  @Override
+  public void onEnable() {
+    // Example player (could be obtained from an event)
+    Player player = Bukkit.getPlayer("a player reference");
+
+    // Colorize a message using PrismaticAPI
+    String message = "&aHello, &bworld!";
+    String coloredMessage = PrismaticAPI.colorize(player, message);
+
+    // Send the colorized message
+    player.sendMessage(coloredMessage);
+  }
 }
 ```
 
@@ -87,7 +85,7 @@ public class MyPlugin extends JavaPlugin {
     public void onEnable() {
         // Define the start and end colors for the gradient
         Color startColor = new Color(255, 0, 0);   // Red
-        Color endColor = new Color(0, 0, 255);       // Blue
+        Color endColor = new Color(0, 0, 255);   // Blue
         
         // Apply a gradient effect to the text "Gradient Text"
         String gradientText = PrismaticAPI.applyGradient("Gradient Text", startColor, endColor, false);
