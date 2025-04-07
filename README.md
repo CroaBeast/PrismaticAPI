@@ -1,30 +1,19 @@
 # PrismaticAPI
 
-PrismaticAPI is a powerful, versatile utility designed to enhance text formatting and color manipulation in your Bukkit/Spigot/Paper plugins. It provides a robust API for converting hexadecimal color codes to Bukkit's ChatColor objects, creating dynamic gradients and rainbow effects, and processing strings for both legacy and modern color formats.
+PrismaticAPI is a powerful utility library for advanced color manipulation and text formatting in Bukkit/Spigot/Paper plugins. Originally forked from [IridiumColorAPI](https://github.com/IridiumLLC/IridiumColorAPI), PrismaticAPI has since diverged significantly, expanding its functionality and refining its design to offer enhanced features such as dynamic gradients, rainbow effects, and improved support for both legacy and modern RGB color schemes.
 
 ---
 
 ## Overview
 
-The **PrismaticAPI** package offers a suite of methods to:
-
-- **Apply Color Effects:**  
-  Apply gradient and rainbow effects to strings. These methods generate arrays of `ChatColor` objects that are then applied character-by-character to create smooth color transitions.
-
-- **Colorize Text:**  
-  Process input strings by applying registered color patterns, translating alternate color codes (using `&`), and adjusting output based on the player's client version.
-
-- **Strip Formatting:**  
-  Remove Bukkit, RGB, and special formatting codes from strings to yield plain text.
-
-All these functionalities are provided in a single, unified API that makes it simple to integrate advanced color effects into chat messages, GUIs, logs, and more.
+**PrismaticAPI** provides a robust, unified interface to:
+- **Apply Color Effects:** Create smooth gradient and rainbow effects by generating arrays of `ChatColor` values.
+- **Process Strings:** Colorize text by applying a series of registered color patterns and translate alternate color codes.
+- **Strip Formatting:** Remove legacy and modern color formatting to retrieve plain text.
 
 ---
 
 ## Key Features
-
-- **Color Mapping:**  
-  Uses an immutable map to associate standard AWT `Color` objects with their corresponding Bukkit `ChatColor` codes.
 
 - **Gradient Effects:**  
   Create smooth color gradients between two colors by generating an array of intermediary colors that can be applied to text.
@@ -37,6 +26,17 @@ All these functionalities are provided in a single, unified API that makes it si
 
 - **Text Processing:**  
   Provides methods to apply all registered color patterns to text, as well as strip any color or formatting codes, ensuring clean plain text output when needed.
+
+### Key Enhancements Over IridiumColorAPI
+
+- **Enhanced Gradient and Rainbow Effects:** 
+  PrismaticAPI introduces more flexible gradient and rainbow functionalities, enabling smoother and more dynamic color transitions.
+  
+- **Improved Text Processing:**
+  Better handling of color codes and stripping methods, making it easier to manipulate and clean text.
+  
+- **Optimized API Design:** 
+  Streamlined methods for applying and stripping colors, and an overall more modular and maintainable codebase.
 
 ---
 
@@ -172,5 +172,6 @@ Replace `${version}` with the appropriate module version.
 
 Enhance your plugin’s visual presentation and user experience with PrismaticAPI!
 
-Happy coding!  
+Happy coding!
+
 — *CroaBeast*
