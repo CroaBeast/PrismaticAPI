@@ -1,3 +1,9 @@
+<p align="center">
+    <a href="https://discord.com/invite/gzzhVqgy3b" alt="Support Server">
+        <img alt="Discord" src="https://img.shields.io/discord/826555143398752286?style=for-the-badge&logo=discord&label=Support%20Server&color=635aea">
+    </a>
+</p>
+
 # PrismaticAPI
 
 PrismaticAPI is a powerful utility library for advanced color manipulation and text formatting in Bukkit/Spigot/Paper plugins. Originally forked from [IridiumColorAPI](https://github.com/IridiumLLC/IridiumColorAPI), PrismaticAPI has since diverged significantly, expanding its functionality and refining its design to offer enhanced features such as dynamic gradients, rainbow effects, and improved support for both legacy and modern RGB color schemes.
