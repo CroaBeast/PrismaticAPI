@@ -98,22 +98,72 @@ public class PrismaticAPI {
      * Retrieves a {@link ChatColor} for the given {@link Color}, taking into account legacy mode.
      *
      * @param color    the AWT color to convert
-     * @param isLegacy if {@code true}, legacy colors are used (closest match); otherwise, modern RGB support is used
+     * @param legacy if {@code true}, legacy colors are used (closest match); otherwise, modern RGB support is used
      * @return the corresponding {@link ChatColor}
      */
-    private ChatColor getBukkit(Color color, boolean isLegacy) {
-        return isLegacy ? getClosestColor(color) : ChatColor.of(color);
+    private ChatColor getBukkit(Color color, boolean legacy) {
+        return legacy ? getClosestColor(color) : ChatColor.of(color);
     }
 
     /**
      * Converts a hexadecimal color string into a {@link ChatColor}.
      *
      * @param string   the hexadecimal color code (without the leading '#' character)
-     * @param isLegacy if {@code true}, legacy color mode is used
+     * @param legacy if {@code true}, legacy color mode is used
      * @return the resulting {@link ChatColor}
      */
-    public ChatColor fromString(String string, boolean isLegacy) {
-        return getBukkit(new Color(Integer.parseInt(string, 16)), isLegacy);
+    public ChatColor fromString(String string, boolean legacy) {
+        return getBukkit(new Color(Integer.parseInt(string, 16)), legacy);
+    }
+
+    /**
+     * Parses a color string into a {@link ChatColor}, using optional player context
+     * to decide if legacy (pre-1.16) color mode should apply.
+     * <p>
+     * The input may include legacy color code markers ('&' or '§').
+     * </p>
+     * - If the cleaned string is a single hex-digit or formatting code (0–9, A–F, K–O, R),
+     *   returns {@link ChatColor#getByChar(char)}.
+     * <p>
+     * - If it’s a six-digit hex (A–F, 0–9), delegates to
+     *   {@link #fromString(String, boolean)} with legacy determined by server and client versions.
+     * </p>
+     * - Otherwise, defaults to {@link ChatColor#WHITE}.
+     *
+     * @param player the {@link Player} whose client version may force legacy mode (may be {@code null})
+     * @param string the color code to parse (may include '&' or '§' markers)
+     * @return the corresponding {@link ChatColor}, or {@link ChatColor#WHITE} if unrecognized
+     */
+    public ChatColor fromString(Player player, String string) {
+        if (string.matches("^[&§]x")) string = string.substring(2);
+        string = string.replaceAll("[&§]", "");
+
+        if (string.matches("^(?i)[a-fk-or0-9]$"))
+            return ChatColor.getByChar(string.toCharArray()[0]);
+
+        if (string.matches("^(?i)[a-f0-9]{6}$")) {
+            boolean legacy = ClientVersion.SERVER_VERSION < 16.0;
+            if (player != null)
+                legacy = legacy || ClientVersion.isLegacy(player);
+            return fromString(string, legacy);
+        }
+
+        return ChatColor.WHITE;
+    }
+
+    /**
+     * Parses a color string into a {@link ChatColor} based solely on server version,
+     * without any player-specific legacy checks.
+     * <p>
+     * This is equivalent to calling {@link #fromString(Player, String)} with a {@code null}
+     * player, so legacy mode is determined only by {@link ClientVersion#SERVER_VERSION}.
+     * </p>
+     *
+     * @param string the color code to parse (may include '&' or '§' markers)
+     * @return the corresponding {@link ChatColor}, or {@link ChatColor#WHITE} if unrecognized
+     */
+    public ChatColor fromString(String string) {
+        return fromString(null, string);
     }
 
     /**
@@ -122,10 +172,10 @@ public class PrismaticAPI {
      * @param start    the starting color of the gradient
      * @param end      the ending color of the gradient
      * @param step     the number of steps (colors) in the gradient
-     * @param isLegacy if {@code true}, legacy color mode is used
+     * @param legacy if {@code true}, legacy color mode is used
      * @return an array of {@link ChatColor} forming the gradient
      */
-    private ChatColor[] createGradient(Color start, Color end, int step, boolean isLegacy) {
+    private ChatColor[] createGradient(Color start, Color end, int step, boolean legacy) {
         ChatColor[] colors = new ChatColor[step];
         int stepR = Math.abs(start.getRed() - end.getRed()) / (step - 1),
                 stepG = Math.abs(start.getGreen() - end.getGreen()) / (step - 1),
@@ -141,7 +191,7 @@ public class PrismaticAPI {
                     start.getGreen() + ((stepG * i) * direction[1]),
                     start.getBlue() + ((stepB * i) * direction[2])
             );
-            colors[i] = getBukkit(color, isLegacy);
+            colors[i] = getBukkit(color, legacy);
         }
         return colors;
     }
@@ -151,15 +201,15 @@ public class PrismaticAPI {
      *
      * @param step     the number of colors in the rainbow
      * @param sat      the saturation level (0.0 to 1.0)
-     * @param isLegacy if {@code true}, legacy color mode is used
+     * @param legacy if {@code true}, legacy color mode is used
      * @return an array of {@link ChatColor} forming a rainbow
      */
-    private ChatColor[] createRainbow(int step, float sat, boolean isLegacy) {
+    private ChatColor[] createRainbow(int step, float sat, boolean legacy) {
         ChatColor[] colors = new ChatColor[step];
         double colorStep = (1.00 / step);
         for (int i = 0; i < step; i++) {
             Color color = Color.getHSBColor((float) (colorStep * i), sat, sat);
-            colors[i] = getBukkit(color, isLegacy);
+            colors[i] = getBukkit(color, legacy);
         }
         return colors;
     }
@@ -169,11 +219,11 @@ public class PrismaticAPI {
      *
      * @param color    the color to apply
      * @param string   the string to colorize
-     * @param isLegacy if {@code true}, legacy color mode is used
+     * @param legacy if {@code true}, legacy color mode is used
      * @return the colorized string
      */
-    public String applyColor(Color color, String string, boolean isLegacy) {
-        return getBukkit(color, isLegacy) + string;
+    public String applyColor(Color color, String string, boolean legacy) {
+        return getBukkit(color, legacy) + string;
     }
 
     /**
@@ -212,12 +262,12 @@ public class PrismaticAPI {
      * @param string   the string to apply the gradient to
      * @param start    the starting color of the gradient
      * @param end      the ending color of the gradient
-     * @param isLegacy if {@code true}, legacy color mode is used
+     * @param legacy if {@code true}, legacy color mode is used
      * @return the string with a gradient effect applied
      */
-    public String applyGradient(String string, Color start, Color end, boolean isLegacy) {
+    public String applyGradient(String string, Color start, Color end, boolean legacy) {
         int i = stripSpecial(string).length();
-        return i <= 1 ? string : apply(string, createGradient(start, end, i, isLegacy));
+        return i <= 1 ? string : apply(string, createGradient(start, end, i, legacy));
     }
 
     /**
@@ -225,12 +275,12 @@ public class PrismaticAPI {
      *
      * @param string     the string to apply the rainbow effect to
      * @param saturation the saturation level for the rainbow (0.0 to 1.0)
-     * @param isLegacy   if {@code true}, legacy color mode is used
+     * @param legacy   if {@code true}, legacy color mode is used
      * @return the string with a rainbow effect applied
      */
-    public String applyRainbow(String string, float saturation, boolean isLegacy) {
+    public String applyRainbow(String string, float saturation, boolean legacy) {
         int i = stripSpecial(string).length();
-        return i == 0 ? string : apply(string, createRainbow(i, saturation, isLegacy));
+        return i == 0 ? string : apply(string, createRainbow(i, saturation, legacy));
     }
 
     /**
@@ -245,11 +295,11 @@ public class PrismaticAPI {
      * @return the colorized string
      */
     public String colorize(Player player, String string) {
-        boolean isLegacy = ClientVersion.SERVER_VERSION < 16.0;
+        boolean legacy = ClientVersion.SERVER_VERSION < 16.0;
         if (player != null)
-            isLegacy = isLegacy || ClientVersion.isLegacy(player);
+            legacy = legacy || ClientVersion.isLegacy(player);
         for (ColorPattern p : ColorPattern.COLOR_PATTERNS)
-            string = p.apply(string, isLegacy);
+            string = p.apply(string, legacy);
         return ChatColor.translateAlternateColorCodes('&', string);
     }
 

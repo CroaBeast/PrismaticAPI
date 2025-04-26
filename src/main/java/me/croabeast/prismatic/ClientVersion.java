@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
  * Example usage:
  * <pre><code>
  * int majorVersion = ClientVersion.getClientVersion(player);
- * boolean isLegacy = ClientVersion.isLegacy(player);
+ * boolean legacy = ClientVersion.legacy(player);
  * System.out.println("Player client major version: " + majorVersion);
  * </code></pre>
  * </p>

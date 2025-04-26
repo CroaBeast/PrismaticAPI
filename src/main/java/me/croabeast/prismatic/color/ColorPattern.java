@@ -42,12 +42,12 @@ public interface ColorPattern {
      * Applies the color pattern to the given string.
      * <p>
      * This method transforms the input text by inserting color codes according to the pattern's rules.
-     * The {@code isLegacy} flag specifies whether legacy color formatting should be used.
+     * The {@code legacy} flag specifies whether legacy color formatting should be used.
      * </p>
      *
      * @param string   the input text to which the color pattern will be applied
-     * @param isLegacy {@code true} if legacy formatting (e.g. 16-color mode) should be used; {@code false} for modern RGB support
+     * @param legacy {@code true} if legacy formatting (e.g. 16-color mode) should be used; {@code false} for modern RGB support
      * @return the transformed, colorized string
      */
-    @NotNull String apply(String string, boolean isLegacy);
+    @NotNull String apply(String string, boolean legacy);
 }

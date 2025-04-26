@@ -115,7 +115,7 @@ class MultiColor implements ColorPattern {
             final Pattern custom = Pattern.compile("<(#([a-f\\d]{6})(:#([a-f\\d]{6}))+)>(.+?)</g(radient)?>");
 
             @Override
-            public @NotNull String apply(String string, boolean isLegacy) {
+            public @NotNull String apply(String string, boolean legacy) {
                 Matcher m = custom.matcher(string);
                 while (m.find()) {
                     String[] colors = m.group(1).split(":");
@@ -135,7 +135,7 @@ class MultiColor implements ColorPattern {
                                 textPart,
                                 getColor(colors[i]),
                                 getColor(colors[i + 1]),
-                                isLegacy
+                                legacy
                         );
                         result.append(i > 0 ? textPart.substring(15) : textPart);
                         i++;
@@ -166,13 +166,13 @@ class MultiColor implements ColorPattern {
      * </p>
      *
      * @param string   the input string to process
-     * @param isLegacy {@code true} to use legacy color formatting; {@code false} for modern formatting
+     * @param legacy {@code true} to use legacy color formatting; {@code false} for modern formatting
      * @return the colorized string after all transformations have been applied
      */
     @Override
-    public @NotNull String apply(String string, boolean isLegacy) {
+    public @NotNull String apply(String string, boolean legacy) {
         for (ColorPattern color : colors)
-            string = color.apply(string, isLegacy);
+            string = color.apply(string, legacy);
         return string;
     }
 
@@ -210,7 +210,7 @@ class MultiColor implements ColorPattern {
          */
         Gradient(String prefix) {
             pattern = Pattern.compile("(?i)" + gradientPattern(prefix));
-            applier = (string, isLegacy) -> {
+            applier = (string, legacy) -> {
                 Matcher matcher = Gradient.this.pattern.matcher(string);
                 while (matcher.find()) {
                     String x = matcher.group(1), text = matcher.group(2),
@@ -229,7 +229,7 @@ class MultiColor implements ColorPattern {
                                 array[i],
                                 getColor(ids.get(i)),
                                 getColor(ids.get(i + 1)),
-                                isLegacy
+                                legacy
                         ));
                         i++;
                     }
@@ -249,8 +249,8 @@ class MultiColor implements ColorPattern {
         }
 
         @Override
-        public @NotNull String apply(String string, boolean isLegacy) {
-            return applier.apply(string, isLegacy);
+        public @NotNull String apply(String string, boolean legacy) {
+            return applier.apply(string, legacy);
         }
 
         @Override
@@ -280,12 +280,12 @@ class MultiColor implements ColorPattern {
          */
         Rainbow(String prefix) {
             pattern = Pattern.compile("(?i)" + rainbowPattern(prefix));
-            applier = (string, isLegacy) -> {
+            applier = (string, legacy) -> {
                 Matcher matcher = Rainbow.this.pattern.matcher(string);
                 while (matcher.find()) {
                     String g = matcher.group(), c = matcher.group(2);
                     float f = Float.parseFloat(matcher.group(1));
-                    String temp = PrismaticAPI.applyRainbow(c, f, isLegacy);
+                    String temp = PrismaticAPI.applyRainbow(c, f, legacy);
                     string = string.replace(g, temp);
                 }
                 return string;
@@ -300,8 +300,8 @@ class MultiColor implements ColorPattern {
         }
 
         @Override
-        public @NotNull String apply(String string, boolean isLegacy) {
-            return applier.apply(string, isLegacy);
+        public @NotNull String apply(String string, boolean legacy) {
+            return applier.apply(string, legacy);
         }
 
         @Override
