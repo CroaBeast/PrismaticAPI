@@ -3,6 +3,9 @@ package me.croabeast.prismatic;
 import com.google.common.collect.ImmutableMap;
 import lombok.experimental.UtilityClass;
 import me.croabeast.prismatic.color.ColorPattern;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.md_5.bungee.api.ChatColor;
 import org.apache.commons.lang.StringUtils;
 import org.bukkit.entity.Player;
@@ -117,7 +120,7 @@ public class PrismaticAPI {
     }
 
     /**
-     * Parses a color string into a {@link ChatColor}, using optional player context
+     * Parses a color string into a {@link ChatColor}, using server context
      * to decide if legacy (pre-1.16) color mode should apply.
      * <p>
      * The input may include legacy color code markers ('&' or '§').
@@ -126,44 +129,29 @@ public class PrismaticAPI {
      *   returns {@link ChatColor#getByChar(char)}.
      * <p>
      * - If it’s a six-digit hex (A–F, 0–9), delegates to
-     *   {@link #fromString(String, boolean)} with legacy determined by server and client versions.
+     *   {@link #fromString(String, boolean)} with legacy determined by server version.
      * </p>
      * - Otherwise, defaults to {@link ChatColor#WHITE}.
-     *
-     * @param player the {@link Player} whose client version may force legacy mode (may be {@code null})
-     * @param string the color code to parse (may include '&' or '§' markers)
-     * @return the corresponding {@link ChatColor}, or {@link ChatColor#WHITE} if unrecognized
-     */
-    public ChatColor fromString(Player player, String string) {
-        if (string.matches("^[&§]x")) string = string.substring(2);
-        string = string.replaceAll("[&§]", "");
-
-        if (string.matches("^(?i)[a-fk-or0-9]$"))
-            return ChatColor.getByChar(string.toCharArray()[0]);
-
-        if (string.matches("^(?i)[a-f0-9]{6}$")) {
-            boolean legacy = ClientVersion.SERVER_VERSION < 16.0;
-            if (player != null)
-                legacy = legacy || ClientVersion.isLegacy(player);
-            return fromString(string, legacy);
-        }
-
-        return ChatColor.WHITE;
-    }
-
-    /**
-     * Parses a color string into a {@link ChatColor} based solely on server version,
-     * without any player-specific legacy checks.
-     * <p>
-     * This is equivalent to calling {@link #fromString(Player, String)} with a {@code null}
-     * player, so legacy mode is determined only by {@link ClientVersion#SERVER_VERSION}.
-     * </p>
      *
      * @param string the color code to parse (may include '&' or '§' markers)
      * @return the corresponding {@link ChatColor}, or {@link ChatColor#WHITE} if unrecognized
      */
     public ChatColor fromString(String string) {
-        return fromString(null, string);
+        ChatColor color = ChatColor.WHITE;
+
+        if (string.matches("^[&§]x")) string = string.substring(2);
+        string = string.replaceAll("[&§]", "");
+
+        if (string.length() == 1 &&
+                ((color = ChatColor.getByChar(string.toCharArray()[0])) != null))
+            return color;
+
+        if (string.length() == 6)
+            try {
+                color = ChatColor.of('#' + string);
+            } catch (Exception ignored) {}
+
+        return color;
     }
 
     /**
@@ -227,6 +215,17 @@ public class PrismaticAPI {
     }
 
     /**
+     * Prepends a given {@link TextComponent} with the {@link ChatColor} corresponding to the provided color.
+     *
+     * @param color    the color to apply
+     * @param string   the string to colorize
+     * @return the colorized component
+     */
+    public TextComponent applyColor(Color color, String string) {
+        return LegacyComponentSerializer.legacySection().deserialize(getBukkit(color, ClientVersion.SERVER_VERSION < 16.0) + string);
+    }
+
+    /**
      * Applies an array of {@link ChatColor} objects sequentially to each character of the source string.
      * <p>
      * The method preserves special color codes and applies the next color from the array for each character.
@@ -270,6 +269,13 @@ public class PrismaticAPI {
         return i <= 1 ? string : apply(string, createGradient(start, end, i, legacy));
     }
 
+    public TextComponent applyGradient(Color start, Color end, String string) {
+        int i = stripSpecial(string).length();
+        return LegacyComponentSerializer.legacySection().deserialize(i > 1 ?
+                apply(string, createGradient(start, end, i, ClientVersion.SERVER_VERSION < 16.0)) :
+                string);
+    }
+
     /**
      * Applies a rainbow color effect to the given string.
      *
@@ -281,6 +287,13 @@ public class PrismaticAPI {
     public String applyRainbow(String string, float saturation, boolean legacy) {
         int i = stripSpecial(string).length();
         return i == 0 ? string : apply(string, createRainbow(i, saturation, legacy));
+    }
+
+    public TextComponent applyRainbow(float saturation, String string) {
+        int i = stripSpecial(string).length();
+        return LegacyComponentSerializer.legacySection().deserialize(i != 0 ?
+                apply(string, createRainbow(i, saturation, ClientVersion.SERVER_VERSION < 16.0)) :
+                string);
     }
 
     /**
@@ -311,6 +324,14 @@ public class PrismaticAPI {
      */
     public String colorize(String string) {
         return colorize(null, string);
+    }
+
+    public TextComponent colorizeAsComponent(Player player, String string) {
+        return LegacyComponentSerializer.legacySection().deserialize(colorize(player, string));
+    }
+
+    public TextComponent colorizeAsComponent(String string) {
+        return LegacyComponentSerializer.legacySection().deserialize(colorize(string));
     }
 
     /**
