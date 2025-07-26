@@ -75,7 +75,7 @@ public final class ClientVersion {
         new ClientVersion(18, 757, 758);
         new ClientVersion(19, 759, 762);
         new ClientVersion(20, 763, 766);
-        new ClientVersion(21, 767, 770);
+        new ClientVersion(21, 767, 800);
     }
 
     /**
