@@ -17,23 +17,31 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: temurin
+          java-version: "17"
 
-      - name: Build with Maven
-        run: mvn clean package
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Build with Gradle (Kotlin DSL)
+        run: gradle --no-daemon clean shadowJar sourcesJar javadocJar
 
       - name: Upload plugin artifact
         uses: actions/upload-artifact@v4
         with:
           name: Plugin
-          path: target/${{ github.event.repository.name }}-*.jar
+          path: build/libs/${{ github.event.repository.name }}-*.jar
 
       - name: Get Plugin Version
         id: version
-        run: echo "VERSION=$(basename $(ls target/${{ github.event.repository.name }}-*.jar | grep -vE '(-sources|-javadoc).jar') .jar | sed 's/${{ github.event.repository.name }}-//')" >> $GITHUB_ENV
+        run: |
+          JAR_PATH=$(ls build/libs/${{ github.event.repository.name }}-*.jar | grep -vE '(-sources|-javadoc).jar' | head -n 1)
+          VERSION=$(basename "$JAR_PATH" .jar | sed "s/${{ github.event.repository.name }}-//")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Delete existing GitHub release (if exists)
         run: |
@@ -57,8 +65,8 @@ jobs:
 
       - name: Rename & Upload Latest Release
         run: |
-          JAR_FILE=$(ls target/${{ github.event.repository.name }}-*.jar | grep -vE '(-sources|-javadoc).jar' | head -n 1)
-          cp "$JAR_FILE" target/${{ github.event.repository.name }}-latest.jar
+          JAR_FILE=$(ls build/libs/${{ github.event.repository.name }}-*.jar | grep -vE '(-sources|-javadoc).jar' | head -n 1)
+          cp "$JAR_FILE" build/libs/${{ github.event.repository.name }}-latest.jar
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
@@ -68,7 +76,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            target/${{ github.event.repository.name }}-latest.jar
+            build/libs/${{ github.event.repository.name }}-latest.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -86,15 +94,12 @@ jobs:
 
       - name: Deploy to Maven repository
         run: |
-          # Create directory structure
           mkdir -p maven-repo/me/croabeast/${{ github.event.repository.name }}/${{ env.VERSION }}
           
-          # Copy JAR files
-          cp target/${{ github.event.repository.name }}-${{ env.VERSION }}.jar maven-repo/me/croabeast/${{ github.event.repository.name }}/${{ env.VERSION }}/
-          cp target/${{ github.event.repository.name }}-${{ env.VERSION }}-javadoc.jar maven-repo/me/croabeast/${{ github.event.repository.name }}/${{ env.VERSION }}/
-          cp target/${{ github.event.repository.name }}-${{ env.VERSION }}-sources.jar maven-repo/me/croabeast/${{ github.event.repository.name }}/${{ env.VERSION }}/
+          cp build/libs/${{ github.event.repository.name }}-${{ env.VERSION }}.jar maven-repo/me/croabeast/${{ github.event.repository.name }}/${{ env.VERSION }}/
+          cp build/libs/${{ github.event.repository.name }}-${{ env.VERSION }}-javadoc.jar maven-repo/me/croabeast/${{ github.event.repository.name }}/${{ env.VERSION }}/
+          cp build/libs/${{ github.event.repository.name }}-${{ env.VERSION }}-sources.jar maven-repo/me/croabeast/${{ github.event.repository.name }}/${{ env.VERSION }}/
           
-          # Create POM file
           cat > maven-repo/me/croabeast/${{ github.event.repository.name }}/${{ env.VERSION }}/${{ github.event.repository.name }}-${{ env.VERSION }}.pom << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <project>
@@ -106,7 +111,6 @@ jobs:
           </project>
           EOF
           
-          # Update or create maven-metadata.xml
           cat > maven-repo/me/croabeast/${{ github.event.repository.name }}/maven-metadata.xml << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <metadata>
@@ -123,7 +127,6 @@ jobs:
           </metadata>
           EOF
           
-          # Commit and push changes
           cd maven-repo
           git add .
           git commit -m "Deploy ${{ github.event.repository.name }} ${{ env.VERSION }}"

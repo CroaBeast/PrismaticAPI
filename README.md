@@ -1,138 +1,137 @@
 <p align="center">
-    <a href="https://discord.com/invite/gzzhVqgy3b" alt="Support Server">
-        <img alt="Discord" src="https://img.shields.io/discord/826555143398752286?style=for-the-badge&logo=discord&label=Support%20Server&color=635aea">
-    </a>
+  <a href="https://discord.com/invite/gzzhVqgy3b" alt="Support Server">
+    <img alt="Discord" src="https://img.shields.io/discord/826555143398752286?style=for-the-badge&logo=discord&label=Support%20Server&color=635aea">
+  </a>
+  <img alt="Java 8+" src="https://img.shields.io/badge/Java-8%2B-orange?style=for-the-badge&logo=openjdk">
+  <img alt="License GPLv3" src="https://img.shields.io/badge/License-GPLv3-blue?style=for-the-badge">
 </p>
 
-# PrismaticAPI
+<h1 align="center">PrismaticAPI 🌈</h1>
 
-PrismaticAPI is a powerful utility library for advanced color manipulation and text formatting in Bukkit/Spigot/Paper plugins. Originally forked from [IridiumColorAPI](https://github.com/IridiumLLC/IridiumColorAPI), PrismaticAPI has since diverged significantly, expanding its functionality and refining its design to offer enhanced features such as dynamic gradients, rainbow effects, and improved support for both legacy and modern RGB color schemes.
-
----
-
-## Overview
-
-**PrismaticAPI** provides a robust, unified interface to:
-- **Apply Color Effects:** Create smooth gradient and rainbow effects by generating arrays of `ChatColor` values.
-- **Process Strings:** Colorize text by applying a series of registered color patterns and translate alternate color codes.
-- **Strip Formatting:** Remove legacy and modern color formatting to retrieve plain text.
+<p align="center">
+  Advanced color toolkit for <b>Bukkit / Spigot / Paper</b> plugins.<br>
+  Gradients, rainbow effects, single RGB formats, MiniMessage-safe parsing, and legacy fallback in one place.
+</p>
 
 ---
 
-## Key Features
+## ✨ Why PrismaticAPI?
 
-- **Gradient Effects:**  
-  Create smooth color gradients between two colors by generating an array of intermediary colors that can be applied to text.
+PrismaticAPI started as a fork of [IridiumColorAPI](https://github.com/IridiumLLC/IridiumColorAPI), then evolved with a broader parser and a more complete formatting pipeline.
 
-- **Rainbow Effects:**  
-  Dynamically generate a rainbow effect across a string based on a defined number of steps and a saturation parameter.
+It helps you:
 
-- **Legacy and Modern Support:**  
-  Automatically adapts to legacy (16-color mode) and modern RGB color support based on the server version and player client.
-
-- **Text Processing:**  
-  Provides methods to apply all registered color patterns to text, as well as strip any color or formatting codes, ensuring clean plain text output when needed.
-
-### Key Enhancements Over IridiumColorAPI
-
-- **Enhanced Gradient and Rainbow Effects:** 
-  PrismaticAPI introduces more flexible gradient and rainbow functionalities, enabling smoother and more dynamic color transitions.
-  
-- **Improved Text Processing:**
-  Better handling of color codes and stripping methods, making it easier to manipulate and clean text.
-  
-- **Optimized API Design:** 
-  Streamlined methods for applying and stripping colors, and an overall more modular and maintainable codebase.
+- Paint text with smooth gradients and rainbow effects.
+- Parse multiple custom RGB syntaxes in a single pass.
+- Keep compatibility with modern RGB and legacy 16-color clients.
+- Convert output to plain strings or Adventure `TextComponent`.
+- Strip any formatting quickly when you need clean text.
 
 ---
 
-## Usage Examples
+## 🧠 Processing Pipeline
 
-### Example 1: Colorizing a Chat Message
+`PrismaticAPI.colorize(...)` processes text in this exact order:
+
+1. MiniMessage parsing (only if MiniMessage is available at runtime)
+2. Multi-color formats (`gradient` and `rainbow`)
+3. Single-color RGB formats
+4. Legacy ampersand translation (`&a`, `&l`, etc.)
+
+This order keeps complex tags stable and avoids conflicts between format types.
+
+---
+
+## 🎨 Supported Color Formats
+
+All custom Prismatic formats are case-insensitive and use 6-digit hex (`RRGGBB`).
+
+### Gradient 🟣🔵🟢
+
+| Format | Description |
+| --- | --- |
+| `<g:RRGGBB>text</g:RRGGBB>` | Short gradient tag |
+| `<gradient:RRGGBB>text</gradient:RRGGBB>` | Long gradient tag |
+| `<#RRGGBB>text</#RRGGBB>` | Hash-style gradient tag |
+| `<#RRGGBB:#RRGGBB[:#RRGGBB...]>text</g>` | Multi-stop gradient with short close tag |
+| `<#RRGGBB:#RRGGBB[:#RRGGBB...]>text</gradient>` | Multi-stop gradient with long close tag |
+
+Gradient tags can include internal color stops:
+
+- `<g:ff0000>Hello <g:00ff00>World</g:0000ff>`
+- `<gradient:ff0000>Hello <gradient:00ff00>World</gradient:0000ff>`
+- `<#ff0000>Hello <#00ff00>World</#0000ff>`
+
+### Rainbow 🌈
+
+| Format | Description |
+| --- | --- |
+| `<rainbow:NUMBER>text</rainbow>` | Full rainbow tag |
+| `<r:NUMBER>text</r>` | Short rainbow tag |
+
+`NUMBER` accepts 1 to 3 digits and is parsed as the saturation value.
+
+### Single Color 🎯
+
+| Format | Example |
+| --- | --- |
+| `{#RRGGBB}` | `{#ff8800}Hello` |
+| `%#RRGGBB%` | `%#ff8800%Hello` |
+| `[#RRGGBB]` | `[#ff8800]Hello` |
+| `<#RRGGBB>` | `<#ff8800>Hello` |
+| `&xRRGGBB` | `&xff8800Hello` |
+| `#RRGGBB` | `#ff8800Hello` |
+| `&#RRGGBB` | `&#ff8800Hello` |
+
+---
+
+## 🚀 Quick Usage
+
+### 1. Colorize a message for a player
 
 ```java
-package com.example.myplugin;
-
-import me.croabeast.prismatic.PrismaticAPI;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
-
-public class MyPlugin extends JavaPlugin {
-
-  @Override
-  public void onEnable() {
-    // Example player (could be obtained from an event)
-    Player player = Bukkit.getPlayer("a player reference");
-
-    // Colorize a message using PrismaticAPI
-    String message = "&aHello, &bworld!";
-    String coloredMessage = PrismaticAPI.colorize(player, message);
-
-    // Send the colorized message
-    player.sendMessage(coloredMessage);
-  }
-}
+Player player = Bukkit.getPlayer("a player reference");
+String raw = "<g:ff0000>Hello <gradient:00ff00>world</gradient:0000ff> &l!";
+String colored = PrismaticAPI.colorize(player, raw);
+player.sendMessage(colored);
 ```
 
-### Example 2: Applying a Gradient Effect
+### 2. Get an Adventure component
 
 ```java
-package com.example.myplugin;
-
-import me.croabeast.prismatic.PrismaticAPI;
-import org.bukkit.ChatColor;
-import org.bukkit.Color;
-import org.bukkit.plugin.java.JavaPlugin;
-
-public class MyPlugin extends JavaPlugin {
-
-    @Override
-    public void onEnable() {
-        // Define the start and end colors for the gradient
-        Color startColor = new Color(255, 0, 0);   // Red
-        Color endColor = new Color(0, 0, 255);   // Blue
-        
-        // Apply a gradient effect to the text "Gradient Text"
-        String gradientText = PrismaticAPI.applyGradient("Gradient Text", startColor, endColor, false);
-        
-        // Log the gradient text (or send it to a player)
-        getLogger().info(gradientText);
-    }
-}
+TextComponent component = PrismaticAPI.colorizeAsComponent("<rainbow:1>PrismaticAPI</rainbow>");
 ```
 
-### Example 3: Stripping All Formatting
+### 3. Strip formatting
 
 ```java
-package com.example.myplugin;
-
-import me.croabeast.prismatic.PrismaticAPI;
-import org.bukkit.plugin.java.JavaPlugin;
-
-public class MyPlugin extends JavaPlugin {
-
-    @Override
-    public void onEnable() {
-        String formattedText = "&aThis &btext &chas &dcolored &ewith &6codes";
-        
-        // Remove all color and formatting codes
-        String plainText = PrismaticAPI.stripAll(formattedText);
-        
-        getLogger().info("Plain text: " + plainText);
-    }
-}
+String raw = "&#00ff99Clean &lthis <rainbow:1>text</rainbow>";
+String plain = PrismaticAPI.stripAll(raw);
 ```
 
 ---
 
-## Maven / Gradle Installation
+## 🧰 API Highlights
 
-To include PrismaticAPI to the project, add the following repository and dependency to your build configuration. Replace `${version}` with the desired version tag.
+| Method | Purpose |
+| --- | --- |
+| `colorize(Player, String)` | Full pipeline with client legacy detection |
+| `colorize(String)` | Full pipeline without player context |
+| `colorizeAsComponent(...)` | Returns Adventure `TextComponent` |
+| `applyGradient(...)` | Programmatic gradient application |
+| `applyRainbow(...)` | Programmatic rainbow application |
+| `stripBukkit(...)` | Removes `&`/`§` legacy color markers |
+| `stripSpecial(...)` | Removes formatting markers (`k-o`, `r`, etc.) |
+| `stripRGB(...)` | Removes custom Prismatic RGB formats |
+| `stripAll(...)` | Removes all known formatting |
+
+---
+
+## 📦 Installation
+
+Replace `${version}` with your target release.
 
 ### Maven
-
-Add the repository and dependency to your `pom.xml`:
 
 ```xml
 <repositories>
@@ -154,8 +153,6 @@ Add the repository and dependency to your `pom.xml`:
 
 ### Gradle
 
-Add the repository and dependency to your `build.gradle`:
-
 ```groovy
 repositories {
     maven {
@@ -168,16 +165,25 @@ dependencies {
 }
 ```
 
-Replace `${version}` with the appropriate module version.
+---
+
+## ✅ Compatibility Notes
+
+- Java target: `1.8`
+- API base: Spigot `1.16.5` (compile dependency)
+- Legacy fallback: enabled for old clients (and ViaVersion-aware when available)
+- MiniMessage integration: optional at runtime
 
 ---
 
-## Conclusion
+## 🙏 Credits
 
-**PrismaticAPI** consolidates advanced color manipulation and text formatting functions into a single, easy-to-use API. Whether you need to create eye-catching gradients, implement dynamic rainbow effects, or simply clean up formatted text, PrismaticAPI provides the tools to do so effectively. Its support for both legacy and modern RGB formats ensures broad compatibility across different server versions and player clients.
+- Original inspiration: [IridiumColorAPI](https://github.com/IridiumLLC/IridiumColorAPI)
+- Maintained and expanded by **CroaBeast**
 
-Enhance your plugin’s visual presentation and user experience with PrismaticAPI!
+---
 
-Happy coding!
+## 📄 License
 
-— *CroaBeast*
+This project is licensed under the **GNU GPL v3**.
+

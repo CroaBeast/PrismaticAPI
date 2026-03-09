@@ -3,6 +3,7 @@ package me.croabeast.prismatic.color;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -23,9 +24,26 @@ import java.util.List;
 public interface ColorPattern {
 
     /**
-     * A default list of color patterns available for processing text.
+     * Handles gradients, rainbow, and other multi-color formats.
      */
-    List<ColorPattern> COLOR_PATTERNS = Arrays.asList(new MultiColor(), new SingleColor());
+    ColorPattern MULTI = new MultiColor();
+
+    /**
+     * Handles single, discrete color formats.
+     */
+    ColorPattern SINGLE = new SingleColor();
+
+    /**
+     * A default ordered list of color patterns available for processing text.
+     * <p>
+     * The order is always:
+     * <ol>
+     *     <li>multi-color (gradients/rainbows)</li>
+     *     <li>single-color</li>
+     * </ol>
+     * </p>
+     */
+    List<ColorPattern> COLOR_PATTERNS = Collections.unmodifiableList(Arrays.asList(MULTI, SINGLE));
 
     /**
      * Strips the color formatting applied by this pattern from the given string.
@@ -36,7 +54,8 @@ public interface ColorPattern {
      * @param string the text from which to remove color formatting
      * @return the plain text string with all color codes removed
      */
-    @NotNull String strip(String string);
+    @NotNull
+    String strip(String string);
 
     /**
      * Applies the color pattern to the given string.
@@ -49,5 +68,6 @@ public interface ColorPattern {
      * @param legacy {@code true} if legacy formatting (e.g. 16-color mode) should be used; {@code false} for modern RGB support
      * @return the transformed, colorized string
      */
-    @NotNull String apply(String string, boolean legacy);
+    @NotNull
+    String apply(String string, boolean legacy);
 }

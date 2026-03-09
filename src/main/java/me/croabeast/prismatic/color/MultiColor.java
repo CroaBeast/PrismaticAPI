@@ -107,7 +107,7 @@ class MultiColor implements ColorPattern {
      * Constructs a new {@code MultiColor} instance.
      * <p>
      * During initialization, several internal color patterns are added:
-     * a custom pattern, two gradient patterns, and two rainbow patterns.
+     * a custom pattern, three gradient patterns, and two rainbow patterns.
      * </p>
      */
     MultiColor() {
@@ -117,6 +117,8 @@ class MultiColor implements ColorPattern {
             @Override
             public @NotNull String apply(String string, boolean legacy) {
                 Matcher m = custom.matcher(string);
+
+                StringBuffer output = new StringBuffer();
                 while (m.find()) {
                     String[] colors = m.group(1).split(":");
                     int count = colors.length - 1;
@@ -137,23 +139,29 @@ class MultiColor implements ColorPattern {
                                 getColor(colors[i + 1]),
                                 legacy
                         );
-                        result.append(i > 0 ? textPart.substring(15) : textPart);
+
+                        if (i > 0) {
+                            int trimLength = PrismaticAPI.fromString(colors[i], legacy).toString().length() + 1;
+                            result.append(textPart.length() > trimLength ? textPart.substring(trimLength) : "");
+                        } else {
+                            result.append(textPart);
+                        }
                         i++;
                     }
-                    string = string.replace(m.group(), result);
+                    m.appendReplacement(output, Matcher.quoteReplacement(result.toString()));
                 }
-                return string;
+                m.appendTail(output);
+                return output.toString();
             }
 
             @Override
             public @NotNull String strip(String string) {
                 Matcher m = custom.matcher(string);
-                while (m.find())
-                    string = string.replace(m.group(), m.group(5));
-                return string;
+                return m.replaceAll("$5");
             }
         });
         new Gradient("g:");
+        new Gradient("gradient:");
         new Gradient("#");
         new Rainbow("rainbow");
         new Rainbow("r");
@@ -210,14 +218,16 @@ class MultiColor implements ColorPattern {
          */
         Gradient(String prefix) {
             pattern = Pattern.compile("(?i)" + gradientPattern(prefix));
+            final Pattern innerPattern = Pattern.compile("(?i)<" + prefix + "([\\da-f]{6})>");
+            final String splitRegex = "(?i)<" + prefix + "([\\da-f]{6})>";
             applier = (string, legacy) -> {
                 Matcher matcher = Gradient.this.pattern.matcher(string);
+                StringBuffer output = new StringBuffer();
                 while (matcher.find()) {
                     String x = matcher.group(1), text = matcher.group(2),
-                            z = matcher.group(3),
-                            r = "(?i)<" + prefix + "([\\da-f]{6})>";
-                    Matcher inside = Pattern.compile(r).matcher(text);
-                    String[] array = text.split(r);
+                            z = matcher.group(3);
+                    Matcher inside = innerPattern.matcher(text);
+                    String[] array = text.split(splitRegex);
                     List<String> ids = new ArrayList<>();
                     ids.add(x);
                     while (inside.find()) ids.add(inside.group(1));
@@ -233,17 +243,20 @@ class MultiColor implements ColorPattern {
                         ));
                         i++;
                     }
-                    string = string.replace(matcher.group(), result);
+                    matcher.appendReplacement(output, Matcher.quoteReplacement(result.toString()));
                 }
-                return string;
+                matcher.appendTail(output);
+                return output.toString();
             };
             stripOperator = (string) -> {
                 Matcher matcher = Gradient.this.pattern.matcher(string);
+                StringBuffer output = new StringBuffer();
                 while (matcher.find()) {
-                    String[] array = matcher.group(2).split("(?i)<" + prefix + "([\\da-f]{6})>");
-                    string = string.replace(matcher.group(), String.join("", array));
+                    String[] array = matcher.group(2).split(splitRegex);
+                    matcher.appendReplacement(output, Matcher.quoteReplacement(String.join("", array)));
                 }
-                return string;
+                matcher.appendTail(output);
+                return output.toString();
             };
             colors.add(this);
         }
@@ -282,19 +295,19 @@ class MultiColor implements ColorPattern {
             pattern = Pattern.compile("(?i)" + rainbowPattern(prefix));
             applier = (string, legacy) -> {
                 Matcher matcher = Rainbow.this.pattern.matcher(string);
+                StringBuffer output = new StringBuffer();
                 while (matcher.find()) {
-                    String g = matcher.group(), c = matcher.group(2);
+                    String c = matcher.group(2);
                     float f = Float.parseFloat(matcher.group(1));
                     String temp = PrismaticAPI.applyRainbow(c, f, legacy);
-                    string = string.replace(g, temp);
+                    matcher.appendReplacement(output, Matcher.quoteReplacement(temp));
                 }
-                return string;
+                matcher.appendTail(output);
+                return output.toString();
             };
             stripOperator = (string) -> {
                 Matcher matcher = Rainbow.this.pattern.matcher(string);
-                while (matcher.find())
-                    string = string.replace(matcher.group(), matcher.group(2));
-                return string;
+                return matcher.replaceAll("$2");
             };
             colors.add(this);
         }
