@@ -28,7 +28,7 @@ jobs:
           gradle-version: "8.11.1"
 
       - name: Build with Gradle (Kotlin DSL)
-        run: gradle --no-daemon clean shadowJar sourcesJar javadocJar
+        run: gradle --no-daemon clean jar sourcesJar javadocJar
 
       - name: Upload plugin artifact
         uses: actions/upload-artifact@v4
@@ -39,8 +39,11 @@ jobs:
       - name: Get Plugin Version
         id: version
         run: |
-          JAR_PATH=$(ls build/libs/${{ github.event.repository.name }}-*.jar | grep -vE '(-sources|-javadoc).jar' | head -n 1)
-          VERSION=$(basename "$JAR_PATH" .jar | sed "s/${{ github.event.repository.name }}-//")
+          VERSION=$(gradle -q properties --property version | awk '/^version:/ {print $2}')
+          if [ -z "$VERSION" ]; then
+            echo "Could not determine project version"
+            exit 1
+          fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Delete existing GitHub release (if exists)
@@ -65,8 +68,7 @@ jobs:
 
       - name: Rename & Upload Latest Release
         run: |
-          JAR_FILE=$(ls build/libs/${{ github.event.repository.name }}-*.jar | grep -vE '(-sources|-javadoc).jar' | head -n 1)
-          cp "$JAR_FILE" build/libs/${{ github.event.repository.name }}-latest.jar
+          cp build/libs/${{ github.event.repository.name }}-${{ env.VERSION }}.jar build/libs/${{ github.event.repository.name }}-latest.jar
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1

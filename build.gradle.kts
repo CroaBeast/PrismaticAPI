@@ -1,5 +1,3 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-
 plugins {
     kotlin("jvm") version "2.3.20-Beta1"
     id("java-library")
@@ -60,14 +58,6 @@ tasks.withType<JavaCompile>().configureEach {
     sourceCompatibility = "1.8"
     targetCompatibility = "1.8"
     options.compilerArgs.add("-Xlint:-options")
-}
-
-tasks.withType<ShadowJar>().configureEach {
-    exclude("META-INF/**")
-}
-
-tasks.build {
-    dependsOn("shadowJar")
 }
 
 tasks.processResources {
