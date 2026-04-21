@@ -1,7 +1,1 @@
-main: me.croabeast.prismatic.PrismaticAPI
-
-name: PrismaticAPI
-version: '${version}'
-prefix: Prismatic
-authors: [ CroaBeast ]
-api-version: 1.13
+# Placeholder file to upload it into Modrinth
