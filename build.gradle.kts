@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm") version "2.3.20-Beta1"
     id("java-library")
     id("io.freefair.lombok") version "9.4.0"
-    id("com.gradleup.shadow") version "8.3.0"
+    id("com.gradleup.shadow") version "9.4.1"
 }
 
 group = "me.croabeast"
@@ -101,7 +101,7 @@ val buildVncJar by tasks.registering(Exec::class) {
     if (org.gradle.internal.os.OperatingSystem.current().isWindows) {
         commandLine("cmd", "/c", "gradlew.bat", "jar", "sourcesJar")
     } else {
-        commandLine("./gradlew", "jar", "sourcesJar")
+        commandLine("bash", "gradlew", "jar", "sourcesJar")
     }
 }
 

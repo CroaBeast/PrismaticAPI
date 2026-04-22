@@ -30,11 +30,12 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.11.1"
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew VNC/gradlew
 
       - name: Build with Gradle (Kotlin DSL)
-        run: gradle --no-daemon clean jar sourcesJar javadocJar
+        run: ./gradlew --no-daemon clean jar sourcesJar javadocJar
 
       - name: Upload plugin artifact
         uses: actions/upload-artifact@v4
@@ -45,7 +46,7 @@ jobs:
       - name: Get Plugin Version
         id: version
         run: |
-          VERSION=$(gradle -q properties --property version | awk '/^version:/ {print $2}')
+          VERSION=$(./gradlew -q properties --property version | awk '/^version:/ {print $2}')
           if [ -z "$VERSION" ]; then
             echo "Could not determine project version"
             exit 1
