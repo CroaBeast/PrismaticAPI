@@ -1,0 +1,113 @@
+name: Package & Publish PrismaticAPI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PROJECT_NAME: PrismaticAPI
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Build with Maven
+        run: mvn -B clean package
+
+      - name: Get version from Maven
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [ -z "$VERSION" ]; then
+            echo "Could not determine project version"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Upload PrismaticAPI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: PrismaticAPI-artifacts-${{ env.VERSION }}
+          if-no-files-found: error
+          path: |
+            target/${{ env.PROJECT_NAME }}-${{ env.VERSION }}.jar
+            target/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-sources.jar
+            target/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-javadoc.jar
+
+      - name: Checkout Maven repository
+        if: github.event_name != 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          repository: CroaBeast/repo
+          path: maven-repo
+          token: ${{ secrets.MAVEN_DEPLOY_TOKEN }}
+
+      - name: Deploy to Maven repository
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          GROUP_ID="me.croabeast"
+          GROUP_PATH="me/croabeast"
+          ARTIFACT_ID="${PROJECT_NAME}"
+          DEST_DIR="maven-repo/${GROUP_PATH}/${ARTIFACT_ID}/${VERSION}"
+          ART="${ARTIFACT_ID}-${VERSION}"
+
+          mkdir -p "$DEST_DIR"
+
+          cp "target/${ART}.jar" "$DEST_DIR/${ART}.jar"
+          cp "target/${ART}-sources.jar" "$DEST_DIR/${ART}-sources.jar"
+          cp "target/${ART}-javadoc.jar" "$DEST_DIR/${ART}-javadoc.jar"
+
+          cat > "$DEST_DIR/${ART}.pom" << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <project>
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>${GROUP_ID}</groupId>
+            <artifactId>${ARTIFACT_ID}</artifactId>
+            <version>${VERSION}</version>
+            <packaging>jar</packaging>
+          </project>
+          EOF
+
+          cat > "maven-repo/${GROUP_PATH}/${ARTIFACT_ID}/maven-metadata.xml" << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <metadata>
+            <groupId>${GROUP_ID}</groupId>
+            <artifactId>${ARTIFACT_ID}</artifactId>
+            <versioning>
+              <latest>${VERSION}</latest>
+              <release>${VERSION}</release>
+              <versions>
+                <version>${VERSION}</version>
+              </versions>
+              <lastUpdated>$(date -u +%Y%m%d%H%M%S)</lastUpdated>
+            </versioning>
+          </metadata>
+          EOF
+
+          cd maven-repo
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add .
+          git commit -m "Deploy ${PROJECT_NAME} ${VERSION}" || echo "No changes to commit"
+          git push
