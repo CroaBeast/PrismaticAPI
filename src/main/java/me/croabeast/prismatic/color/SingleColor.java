@@ -60,13 +60,13 @@ class SingleColor implements ColorPattern {
      * </p>
      *
      * @param string   the string to be colorized
-     * @param isLegacy {@code true} to apply legacy formatting; {@code false} for modern RGB colors
+     * @param legacy {@code true} to apply legacy formatting; {@code false} for modern RGB colors
      * @return the colorized string
      */
     @Override
-    public @NotNull String apply(String string, boolean isLegacy) {
+    public @NotNull String apply(String string, boolean legacy) {
         for (ColorPattern color : colors)
-            string = color.apply(string, isLegacy);
+            string = color.apply(string, legacy);
         return string;
     }
 
@@ -125,14 +125,14 @@ class SingleColor implements ColorPattern {
          * </p>
          *
          * @param string   the input string to transform
-         * @param isLegacy {@code true} to use legacy color formatting; {@code false} for modern formatting
+         * @param legacy {@code true} to use legacy color formatting; {@code false} for modern formatting
          * @return the string with this color pattern applied
          */
         @Override
-        public @NotNull String apply(String string, boolean isLegacy) {
+        public @NotNull String apply(String string, boolean legacy) {
             Matcher m = pattern.matcher(string);
             while (m.find()) {
-                ChatColor c = PrismaticAPI.fromString(m.group(1), isLegacy);
+                ChatColor c = PrismaticAPI.fromString(m.group(1), legacy);
                 string = string.replace(m.group(), c.toString());
             }
             return string;
