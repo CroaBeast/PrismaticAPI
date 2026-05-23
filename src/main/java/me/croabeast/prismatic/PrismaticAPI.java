@@ -1,288 +1,261 @@
 package me.croabeast.prismatic;
 
 import lombok.experimental.UtilityClass;
-import me.croabeast.prismatic.color.ColorPattern;
-import me.croabeast.vnc.VNC;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.md_5.bungee.api.ChatColor;
-import org.apache.commons.lang.StringUtils;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
 
 /**
- * Central utility for color and text formatting operations used by PrismaticAPI.
+ * Main entry point for the PrismaticAPI formatting pipeline.
+ *
+ * <p>This class exposes two facades backed by the same parser and color engine:
+ * {@link #legacy()} returns plain strings containing Bukkit-compatible color codes and is always safe
+ * to use, while {@link #adventure()} returns Adventure components when the Adventure runtime is available.
+ *
+ * <p>The top-level methods on this class are retained for source compatibility with older PrismaticAPI
+ * versions and delegate to {@link #legacy()}.
+ *
+ * <p>The shared pipeline understands legacy color codes, multiple RGB syntaxes, gradients, rainbows and,
+ * when Adventure MiniMessage is present at runtime, MiniMessage tags that coexist with Prismatic tags.
  */
 @UtilityClass
 public class PrismaticAPI {
 
-    private final ColorEngine COLOR_ENGINE = new ColorEngine();
+    private final PrismaticCore CORE = new PrismaticCore();
+    private final Formatter<String> LEGACY = new LegacyFormatter(CORE);
 
     /**
-     * Parses a textual color identifier into a Bungee {@link ChatColor}.
+     * Returns the always-safe legacy formatter facade.
      *
-     * <p>The input may be a named legacy color, a legacy color code, or a 6-digit hexadecimal
-     * value. When {@code legacy} is {@code true}, RGB colors are downsampled to the nearest
-     * legacy color supported by older clients.</p>
+     * <p>The returned formatter produces {@link String strings} containing Bukkit/Bungee color codes and
+     * does not require Adventure to exist at runtime.
      *
-     * @param string color text to parse
-     * @param legacy whether the result should be restricted to legacy colors
-     * @return resolved chat color
+     * @return formatter that produces legacy strings
+     * @since 1.4.0
+     */
+    public Formatter<String> legacy() {
+        return LEGACY;
+    }
+
+    /**
+     * Returns the Adventure formatter facade when the required Adventure classes are present at runtime.
+     *
+     * <p>This facade produces {@link net.kyori.adventure.text.Component components} from the same Prismatic
+     * parsing pipeline used by {@link #legacy()}. Call {@link #isAdventureAvailable()} before invoking this
+     * method when Adventure is an optional dependency in the consuming plugin.
+     *
+     * @return formatter that produces Adventure components
+     * @throws IllegalStateException if Adventure or MiniMessage is not available at runtime
+     * @since 1.4.0
+     */
+    @SuppressWarnings("unchecked")
+    public Formatter<net.kyori.adventure.text.Component> adventure() {
+        if (!isAdventureAvailable()) {
+            throw new IllegalStateException(
+                    "Adventure runtime is not available. Check PrismaticAPI.isAdventureAvailable() before calling adventure()."
+            );
+        }
+
+        return (Formatter<net.kyori.adventure.text.Component>) AdventureAccess.formatter(CORE);
+    }
+
+    /**
+     * Checks whether the Adventure facade can be used safely at runtime.
+     *
+     * <p>The check validates the presence of the Adventure component API, MiniMessage and the legacy
+     * serializer classes required by PrismaticAPI's Adventure bridge.
+     *
+     * @return {@code true} when the Adventure formatter can be created safely
+     * @since 1.4.0
+     */
+    public boolean isAdventureAvailable() {
+        return AdventureAccess.isAvailable();
+    }
+
+    /**
+     * Converts a bare six-digit hexadecimal RGB value into a {@link ChatColor}.
+     *
+     * <p>When {@code legacy} is {@code false}, the returned color preserves the exact RGB value.
+     * When {@code legacy} is {@code true}, the value is downsampled to the nearest legacy Bukkit color.
+     *
+     * @param string six-digit hexadecimal RGB value without a leading {@code #}
+     * @param legacy whether to downsample the result to the legacy Bukkit palette
+     * @return the resulting chat color
+     * @throws NumberFormatException if {@code string} is not a valid six-digit hexadecimal RGB value
      */
     public ChatColor fromString(String string, boolean legacy) {
-        return COLOR_ENGINE.fromString(string, legacy);
+        return legacy().fromString(string, legacy);
     }
 
     /**
-     * Parses a textual color identifier using full RGB support.
+     * Parses a color token into a {@link ChatColor}.
      *
-     * @param string color text to parse
-     * @return resolved chat color
+     * <p>This overload accepts plain legacy codes such as {@code a}, prefixed legacy codes such as
+     * {@code &a} or {@code §a}, exact RGB values such as {@code ff8800}, and compact hex tokens such as
+     * {@code &xff8800}. Blank input falls back to {@link ChatColor#WHITE}.
+     *
+     * @param string color token to parse
+     * @return the parsed chat color, or white when the input is blank or unrecognized
      */
     public ChatColor fromString(String string) {
-        return COLOR_ENGINE.fromString(string);
+        return legacy().fromString(string);
     }
 
     /**
-     * Applies a single color to a string.
+     * Applies a single color to the beginning of a string.
      *
-     * @param color target color
-     * @param string text to colorize
-     * @param legacy whether the output should be restricted to legacy colors
-     * @return colorized legacy string
+     * @param color color to prepend
+     * @param string text to receive the color
+     * @param legacy whether to use the nearest legacy Bukkit color instead of exact RGB
+     * @return the colorized string
      */
     public String applyColor(Color color, String string, boolean legacy) {
-        return COLOR_ENGINE.applyColor(color, string, legacy);
+        return legacy().applyColor(color, string, legacy);
     }
 
     /**
-     * Applies a single color and returns both Adventure and legacy representations.
+     * Applies a per-character gradient between two colors.
      *
-     * <p>This is useful when callers want to keep a component form available while still having
-     * a ready-to-send legacy fallback string.</p>
-     *
-     * @param color target color
-     * @param string text to colorize
-     * @return rich text result containing both component and legacy representations
-     */
-    public RichText applyColorText(Color color, String string) {
-        return legacyText(COLOR_ENGINE.applyColor(color, string, !canUseHexColors()));
-    }
-
-    /**
-     * Applies a two-stop gradient to a string.
+     * <p>Existing special format codes such as bold or italic are preserved while visible characters are
+     * recolored across the gradient.
      *
      * @param string text to colorize
      * @param start gradient start color
      * @param end gradient end color
-     * @param legacy whether the output should be restricted to legacy colors
-     * @return colorized legacy string
+     * @param legacy whether to downsample each generated step to the legacy Bukkit palette
+     * @return the gradient-colored string
      */
     public String applyGradient(String string, Color start, Color end, boolean legacy) {
-        return COLOR_ENGINE.applyGradient(string, start, end, legacy);
+        return legacy().applyGradient(string, start, end, legacy);
     }
 
     /**
-     * Applies a two-stop gradient and returns both Adventure and legacy representations.
-     *
-     * @param start gradient start color
-     * @param end gradient end color
-     * @param string text to colorize
-     * @return rich text result containing both component and legacy representations
-     */
-    public RichText applyGradientText(Color start, Color end, String string) {
-        return legacyText(COLOR_ENGINE.applyGradient(string, start, end, !canUseHexColors()));
-    }
-
-    /**
-     * Applies a rainbow effect to a string.
+     * Applies a per-character rainbow effect.
      *
      * @param string text to colorize
-     * @param saturation rainbow saturation value
-     * @param legacy whether the output should be restricted to legacy colors
-     * @return colorized legacy string
+     * @param saturation rainbow saturation/brightness factor used to generate the palette
+     * @param legacy whether to downsample each generated step to the legacy Bukkit palette
+     * @return the rainbow-colored string
      */
     public String applyRainbow(String string, float saturation, boolean legacy) {
-        return COLOR_ENGINE.applyRainbow(string, saturation, legacy);
+        return legacy().applyRainbow(string, saturation, legacy);
     }
 
     /**
-     * Applies a rainbow effect and returns both Adventure and legacy representations.
+     * Parses and colorizes a string using the full Prismatic pipeline for a specific player context.
      *
-     * @param saturation rainbow saturation value
-     * @param string text to colorize
-     * @return rich text result containing both component and legacy representations
-     */
-    public RichText applyRainbowText(float saturation, String string) {
-        return legacyText(COLOR_ENGINE.applyRainbow(string, saturation, !canUseHexColors()));
-    }
-
-    private boolean resolveLegacy(@Nullable Player player) {
-        return !canUseHexColors(player);
-    }
-
-    private String applyRgbPipeline(String string, boolean legacy) {
-        string = ColorPattern.MULTI.apply(string, legacy);
-        return ColorPattern.SINGLE.apply(string, legacy);
-    }
-
-    private String applyLegacyPipeline(String string, boolean legacy) {
-        return ChatColor.translateAlternateColorCodes('&', applyRgbPipeline(string, legacy));
-    }
-
-    private RichText legacyText(String string) {
-        String safe = string == null ? "" : string;
-        return new RichText(legacySerializer().deserialize(safe), safe);
-    }
-
-    private String colorizedLegacy(String string) {
-        return colorize(string);
-    }
-
-    private LegacyComponentSerializer legacySerializer() {
-        return LegacyComponentSerializer.legacySection();
-    }
-
-    /**
-     * Runs the full formatting pipeline and returns a rich result tailored to a specific player.
+     * <p>If the player supports hex colors, RGB output is preserved. Otherwise the result is converted to
+     * legacy-safe colors. When Adventure MiniMessage is available at runtime, MiniMessage tags are handled
+     * before Prismatic tags are restored into the final output.
      *
-     * <p>The player's effective version is consulted through VNC so old clients can be
-     * downsampled automatically when ViaVersion is present. The pipeline processes MiniMessage
-     * first when available, then Prismatic gradients/rainbows, then single RGB formats, and
-     * finally legacy ampersand translation.</p>
-     *
-     * @param player target player, or {@code null} to use server-level capabilities
-     * @param string raw text to process
-     * @return rich text result containing both component and legacy representations
-     */
-    public RichText colorizeText(@Nullable Player player, String string) {
-        if (StringUtils.isBlank(string))
-            return legacyText(string);
-
-        boolean legacy = resolveLegacy(player);
-        if (string.indexOf('<') != -1 && Adventure.isAvailable())
-            return Adventure.colorize(string, legacy, PrismaticAPI::applyLegacyPipeline);
-
-        return legacyText(applyLegacyPipeline(string, legacy));
-    }
-
-    /**
-     * Runs the full formatting pipeline using server-level capabilities only.
-     *
-     * @param string raw text to process
-     * @return rich text result containing both component and legacy representations
-     */
-    public RichText colorizeText(String string) {
-        return colorizeText(null, string);
-    }
-
-    /**
-     * Runs the full formatting pipeline and returns only the legacy string representation.
-     *
-     * @param player target player, or {@code null} to use server-level capabilities
-     * @param string raw text to process
-     * @return formatted legacy string
+     * @param player player used to resolve runtime color capabilities, or {@code null} to force the
+     *               conservative legacy fallback
+     * @param string text to parse and colorize
+     * @return the final formatted string
      */
     public String colorize(@Nullable Player player, String string) {
-        return colorizeText(player, string).asLegacy();
+        return legacy().colorize(player, string);
     }
 
     /**
-     * Runs the full formatting pipeline and returns only the legacy string representation.
+     * Parses and colorizes a string using the conservative no-player fallback.
      *
-     * @param string raw text to process
-     * @return formatted legacy string
+     * <p>This overload delegates to {@link #colorize(Player, String)} with a {@code null} player, which
+     * means the result is treated as legacy-safe output because no player capability information is available.
+     *
+     * @param string text to parse and colorize
+     * @return the formatted legacy-safe string
      */
     public String colorize(String string) {
-        return colorize(null, string);
+        return legacy().colorize(string);
     }
 
     /**
-     * Removes legacy Bukkit color markers such as {@code &a} and {@code §a}.
+     * Removes standard Bukkit color codes from a string.
      *
-     * @param string input text
-     * @return text without legacy color markers
+     * <p>This targets color codes such as {@code &a}, {@code §c} and the compact {@code x} hex prefix.
+     * It does not remove Prismatic gradient/rainbow tags.
+     *
+     * @param string text to clean
+     * @return the string without standard Bukkit color codes
      */
     public String stripBukkit(String string) {
-        return COLOR_ENGINE.stripBukkit(string);
+        return legacy().stripBukkit(string);
     }
 
     /**
-     * Removes special legacy formatting markers such as bold, italic, or reset codes.
+     * Removes Bukkit special formatting codes from a string.
      *
-     * @param string input text
-     * @return text without special legacy formatting markers
+     * <p>This includes styles such as bold, italic, underline, obfuscated and reset markers.
+     *
+     * @param string text to clean
+     * @return the string without Bukkit special formatting codes
      */
     public String stripSpecial(String string) {
-        return COLOR_ENGINE.stripSpecial(string);
+        return legacy().stripSpecial(string);
     }
 
     /**
-     * Removes Prismatic RGB syntaxes from a string.
+     * Removes Prismatic RGB, gradient and rainbow syntax from a string while leaving legacy Bukkit codes
+     * untouched.
      *
-     * <p>This strips gradients, rainbows, and single RGB markers while leaving the original text
-     * content intact.</p>
-     *
-     * @param string input text
-     * @return text without Prismatic RGB markers
+     * @param string text to clean
+     * @return the string without Prismatic RGB syntax
      */
     public String stripRGB(String string) {
-        if (StringUtils.isBlank(string)) return string;
-
-        string = ColorPattern.MULTI.strip(string);
-        return ColorPattern.SINGLE.strip(string);
+        return legacy().stripRGB(string);
     }
 
     /**
-     * Removes every formatting syntax understood by this library.
+     * Removes Bukkit colors, Bukkit special formatting and Prismatic RGB syntax from a string.
      *
-     * @param string input text
-     * @return text without any known legacy or RGB formatting
+     * @param string text to clean
+     * @return the fully stripped plain-text string
      */
     public String stripAll(String string) {
-        return stripRGB(stripSpecial(stripBukkit(string)));
+        return legacy().stripAll(string);
     }
 
     /**
-     * Checks whether the formatted form of a string starts with a color code.
+     * Determines whether the formatted representation of a string starts with a color code.
      *
-     * @param string input text
-     * @return {@code true} when the formatted output starts with a color code
+     * <p>The inspection is performed against the conservative legacy rendering used by
+     * {@link #colorize(String)}.
+     *
+     * @param string text to inspect
+     * @return {@code true} if the formatted output begins with a color code
      */
     public boolean startsWithColor(String string) {
-        return COLOR_ENGINE.startsWithColor(colorizedLegacy(string));
+        return legacy().startsWithColor(string);
     }
 
     /**
-     * Resolves the first color code present in the formatted output.
+     * Returns the first color code found in the formatted representation of a string.
      *
-     * @param string input text
-     * @return first color code, or {@code null} when none is present
+     * <p>The returned value is based on the conservative legacy rendering used by
+     * {@link #colorize(String)} and is typically a section-sign color code such as {@code §a}.
+     *
+     * @param string text to inspect
+     * @return the first detected color code, or {@code null} if none is present
      */
     @Nullable
     public String getStartColor(String string) {
-        return COLOR_ENGINE.getStartColor(colorizedLegacy(string));
+        return legacy().getStartColor(string);
     }
 
     /**
-     * Resolves the last color code present in the formatted output.
+     * Returns the last color code found in the formatted representation of a string.
      *
-     * @param string input text
-     * @return last color code, or {@code null} when none is present
+     * <p>The returned value is based on the conservative legacy rendering used by
+     * {@link #colorize(String)} and is typically a section-sign color code such as {@code §a}.
+     *
+     * @param string text to inspect
+     * @return the last detected color code, or {@code null} if none is present
      */
     @Nullable
     public String getEndColor(String string) {
-        return COLOR_ENGINE.getEndColor(colorizedLegacy(string));
-    }
-
-    private boolean canUseHexColors() {
-        return VNC.SERVER_MINECRAFT_VERSION.supportsHex();
-    }
-
-    private boolean canUseHexColors(@Nullable Player player) {
-        return canUseHexColors() &&
-                player != null &&
-                VNC.player(player).supportsHex();
+        return legacy().getEndColor(string);
     }
 }
