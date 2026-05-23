@@ -335,6 +335,21 @@ public class PrismaticAPI {
     }
 
     /**
+     * Retrieves the start color code found in the provided string.
+     *
+     * @param string the string to search for color codes
+     * @return the start color code as a {@link String}, or {@code null} if none is found
+     */
+    @Nullable
+    public String getStartColor(String string) {
+        string = colorize(string);
+        Matcher matcher = Pattern.compile(COLOR_PATTERN).matcher(string);
+        String color = null;
+        if (matcher.find()) color = matcher.group();
+        return color;
+    }
+
+    /**
      * Retrieves the end color code found in the provided string.
      *
      * @param string the string to search for color codes
