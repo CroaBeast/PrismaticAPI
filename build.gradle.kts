@@ -8,29 +8,7 @@ plugins {
 group = "me.croabeast"
 version = "1.5.0"
 
-val vncProjectDir = listOf("VNC", "../VNC")
-    .map(::file)
-    .firstOrNull { candidate ->
-        candidate.resolve("build.gradle.kts").exists() && candidate.resolve("settings.gradle.kts").exists()
-    }
-    ?: error("VNC project not found. Clone CroaBeast/VNC next to PrismaticAPI or into PrismaticAPI/VNC.")
-
-val vncBuildScript = vncProjectDir.resolve("build.gradle.kts").readText()
-val vncSettingsScript = vncProjectDir.resolve("settings.gradle.kts").readText()
-
-val vncVersion = Regex("""(?m)^\s*version\s*=\s*"([^"]+)"""")
-    .find(vncBuildScript)
-    ?.groupValues
-    ?.getOrNull(1)
-    ?: error("Could not resolve VNC version from ${vncProjectDir.resolve("build.gradle.kts")}.")
-
-val vncArtifactId: String? = Regex("""(?m)^\s*rootProject\.name\s*=\s*"([^"]+)"""")
-    .find(vncSettingsScript)
-    ?.groupValues
-    ?.getOrNull(1)
-    ?: vncProjectDir.name
-
-val VNC = vncProjectDir.resolve("build/libs/$vncArtifactId-$vncVersion.jar")
+val vncVersion = "1.2.0"
 
 val embedded by configurations.creating {
     isCanBeConsumed = false
@@ -40,6 +18,7 @@ val embedded by configurations.creating {
 repositories {
     mavenCentral()
     mavenLocal()
+    maven("https://croabeast.github.io/repo/")
 
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
     maven("https://oss.sonatype.org/content/groups/public/")
@@ -47,8 +26,12 @@ repositories {
 }
 
 dependencies {
-    implementation(files(VNC))
-    embedded(files(VNC))
+    implementation("me.croabeast.vnc:VNC:$vncVersion") {
+        isTransitive = false
+    }
+    embedded("me.croabeast.vnc:VNC:$vncVersion") {
+        isTransitive = false
+    }
 
     compileOnly("org.jetbrains:annotations:26.0.2-1")
     annotationProcessor("org.jetbrains:annotations:26.0.2-1")
@@ -93,37 +76,16 @@ tasks.withType<JavaCompile>().configureEach {
     options.compilerArgs.add("-Xlint:-options")
 }
 
-val buildVncJar by tasks.registering(Exec::class) {
-    group = "build"
-    description = "Builds the local VNC artifacts used by PrismaticAPI without deleting existing jars."
-    workingDir = vncProjectDir
-
-    if (org.gradle.internal.os.OperatingSystem.current().isWindows) {
-        commandLine("cmd", "/c", "gradlew.bat", "jar", "sourcesJar")
-    } else {
-        commandLine("bash", "gradlew", "jar", "sourcesJar")
-    }
-}
-
-tasks.withType<JavaCompile>().configureEach {
-    dependsOn(buildVncJar)
-}
-
-tasks.withType<Javadoc>().configureEach {
-    dependsOn(buildVncJar)
-}
-
 tasks.jar {
-    dependsOn(buildVncJar)
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
     from({
         embedded
             .filter { it.extension == "jar" }
             .map(::zipTree)
-    })
-
-    exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
+    }) {
+        exclude("META-INF/**", "**.json", "plugin.yml")
+    }
 }
 
 tasks.processResources {
