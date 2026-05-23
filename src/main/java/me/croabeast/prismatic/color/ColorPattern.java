@@ -7,34 +7,29 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Defines a contract for applying and stripping color formatting to strings.
- * <p>
- * Implementations of {@code ColorPattern} are responsible for transforming text by inserting color codes
- * (e.g. for gradients, rainbow effects, or single color changes) and for removing such formatting from text.
- * This is useful in contexts where dynamic text colorization is desired, such as chat messages, GUI displays,
- * or custom logging.
- * </p>
- * A default list of available color patterns is provided by the constant {@link #COLOR_PATTERNS},
- * which includes implementations like {@code MultiColor} and {@code SingleColor}.
- * </p>
+ * Low-level contract for Prismatic color-pattern processors.
  *
- * @see MultiColor
- * @see SingleColor
+ * <p>Implementations transform raw strings by either applying or stripping Prismatic-specific color syntax
+ * such as gradients, rainbows and single RGB markers. Most plugin code should prefer
+ * {@link me.croabeast.prismatic.PrismaticAPI} rather than interacting with this SPI directly.
+ *
+ * <p>The built-in processors are exposed through {@link #MULTI}, {@link #SINGLE} and
+ * {@link #COLOR_PATTERNS}.
  */
 public interface ColorPattern {
 
     /**
-     * Handles gradients, rainbow, and other multi-color formats.
+     * Built-in processor for gradients, rainbows and other multi-color Prismatic tags.
      */
     ColorPattern MULTI = new MultiColor();
 
     /**
-     * Handles single, discrete color formats.
+     * Built-in processor for single RGB tokens such as {@code {#ff8800}} or {@code &#ff8800}.
      */
     ColorPattern SINGLE = new SingleColor();
 
     /**
-     * A default ordered list of color patterns available for processing text.
+     * Immutable ordered list of the built-in processors used by the default Prismatic pipeline.
      * <p>
      * The order is always:
      * <ol>
@@ -46,10 +41,7 @@ public interface ColorPattern {
     List<ColorPattern> COLOR_PATTERNS = Collections.unmodifiableList(Arrays.asList(MULTI, SINGLE));
 
     /**
-     * Strips the color formatting applied by this pattern from the given string.
-     * <p>
-     * This method removes any inserted color codes, resulting in a plain text string.
-     * </p>
+     * Removes the syntax handled by this pattern from a string.
      *
      * @param string the text from which to remove color formatting
      * @return the plain text string with all color codes removed
@@ -58,11 +50,10 @@ public interface ColorPattern {
     String strip(String string);
 
     /**
-     * Applies the color pattern to the given string.
-     * <p>
-     * This method transforms the input text by inserting color codes according to the pattern's rules.
-     * The {@code legacy} flag specifies whether legacy color formatting should be used.
-     * </p>
+     * Applies this pattern to a string.
+     *
+     * <p>The {@code legacy} flag allows implementations to choose between exact RGB output and downsampled
+     * legacy Bukkit colors.
      *
      * @param string   the input text to which the color pattern will be applied
      * @param legacy {@code true} if legacy formatting (e.g. 16-color mode) should be used; {@code false} for modern RGB support
