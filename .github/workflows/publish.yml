@@ -21,17 +21,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Checkout VNC dependency
+        uses: actions/checkout@v4
+        with:
+          repository: CroaBeast/VNC
+          path: VNC
+          ref: 7759b4a5df298de36570f887218dcb6db790edc3
+
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
       - name: Make gradlew executable
-        run: chmod +x gradlew
+        run: chmod +x gradlew VNC/gradlew
 
       - name: Build with Gradle
         run: ./gradlew --no-daemon clean jar sourcesJar javadocJar
