@@ -1,15 +1,22 @@
 package me.croabeast.prismatic;
 
+import com.viaversion.viaversion.api.Via;
 import me.croabeast.prismatic.color.ColorPattern;
+import me.croabeast.vnc.MinecraftVersion;
 import me.croabeast.vnc.VNC;
 import net.md_5.bungee.api.ChatColor;
 import org.apache.commons.lang.StringUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
+import java.util.regex.Pattern;
 
 final class PrismaticCore {
+
+    private static final Pattern MINI_MESSAGE_TAG_PATTERN =
+            Pattern.compile("(?i)</?[#a-z0-9_:-]+(?:\\s*:[^<>]*)?>");
 
     private final ColorEngine colorEngine = new ColorEngine();
 
@@ -34,16 +41,14 @@ final class PrismaticCore {
     }
 
     String colorize(@Nullable Player player, String string) {
-        if (StringUtils.isBlank(string)) {
-            return string == null ? "" : string;
-        }
+        return StringUtils.isBlank(string) ? string == null ? "" : string : colorizeNonBlank(player, string);
+    }
 
+    private String colorizeNonBlank(@Nullable Player player, String string) {
         boolean legacy = shouldUseLegacyColors(player);
-        if (string.indexOf('<') != -1 && AdventureAccess.isAvailable()) {
-            return AdventureAccess.bridge(this).colorizeLegacy(string, legacy);
-        }
-
-        return applyLegacyPipeline(string, legacy);
+        return string.indexOf('<') != -1 && AdventureAccess.isAvailable() ?
+                AdventureAccess.bridge(this).colorizeLegacy(string, legacy) :
+                applyLegacyPipeline(string, legacy);
     }
 
     String stripBukkit(String string) {
@@ -55,14 +60,36 @@ final class PrismaticCore {
     }
 
     String stripRGB(String string) {
-        if (StringUtils.isBlank(string)) return string;
+        return StringUtils.isBlank(string) ?
+                string :
+                ColorPattern.SINGLE.strip(ColorPattern.MULTI.strip(string));
+    }
 
-        string = ColorPattern.MULTI.strip(string);
-        return ColorPattern.SINGLE.strip(string);
+    String stripMiniMessage(String string) {
+        return StringUtils.isBlank(string) || string.indexOf('<') == -1 ? string : stripMiniMessageTags(string);
+    }
+
+    private String stripMiniMessageTags(String string) {
+        String adventureStripped = tryStripMiniMessageWithAdventure(string);
+        return adventureStripped != null ? adventureStripped : MINI_MESSAGE_TAG_PATTERN.matcher(string).replaceAll("");
+    }
+
+    @Nullable
+    private String tryStripMiniMessageWithAdventure(String string) {
+        return AdventureAccess.isAvailable() ? stripMiniMessageWithAdventure(string) : null;
+    }
+
+    @Nullable
+    private String stripMiniMessageWithAdventure(String string) {
+        try {
+            return AdventureAccess.bridge(this).stripMiniMessage(string);
+        } catch (Throwable ignored) {}
+
+        return null;
     }
 
     String stripAll(String string) {
-        return stripRGB(stripSpecial(stripBukkit(string)));
+        return stripRGB(stripMiniMessage(stripSpecial(stripBukkit(string))));
     }
 
     boolean startsWithColor(String string) {
@@ -88,17 +115,38 @@ final class PrismaticCore {
     }
 
     private String applyRgbPipeline(String string, boolean legacy) {
-        string = ColorPattern.MULTI.apply(string, legacy);
-        return ColorPattern.SINGLE.apply(string, legacy);
+        return ColorPattern.SINGLE.apply(ColorPattern.MULTI.apply(string, legacy), legacy);
     }
 
     private boolean canUseHexColors() {
-        return VNC.SERVER_MINECRAFT_VERSION.supportsHex();
+        return VNC.SERVER_MINECRAFT_VERSION != null && VNC.SERVER_MINECRAFT_VERSION.supportsHex();
     }
 
     private boolean canUseHexColors(@Nullable Player player) {
-        return canUseHexColors() &&
-                player != null &&
-                VNC.player(player).supportsHex();
+        return canUseHexColors() && player != null && playerMinecraftVersion(player).supportsHex();
+    }
+
+    private MinecraftVersion playerMinecraftVersion(Player player) {
+        int protocol = playerProtocol(player);
+        MinecraftVersion version = MinecraftVersion.fromProtocol(protocol);
+        return version != null ? version : VNC.SERVER_MINECRAFT_VERSION;
+    }
+
+    private int playerProtocol(Player player) {
+        return Bukkit.getPluginManager().isPluginEnabled("ViaVersion") ? viaPlayerProtocol(player) : serverProtocol();
+    }
+
+    private int viaPlayerProtocol(Player player) {
+        try {
+            return Via.getAPI().getPlayerVersion(player.getUniqueId());
+        } catch (Throwable ignored) {}
+
+        return serverProtocol();
+    }
+
+    private int serverProtocol() {
+        return VNC.SERVER_MINECRAFT_VERSION != null &&
+                VNC.SERVER_MINECRAFT_VERSION.getProtocol() != null ?
+                VNC.SERVER_MINECRAFT_VERSION.getProtocol() : -1;
     }
 }

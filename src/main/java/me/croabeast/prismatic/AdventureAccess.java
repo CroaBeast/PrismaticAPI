@@ -1,19 +1,20 @@
 package me.croabeast.prismatic;
 
+import lombok.experimental.UtilityClass;
+
 import java.lang.reflect.Constructor;
 
-final class AdventureAccess {
+@UtilityClass
+class AdventureAccess {
 
-    private static volatile Boolean available;
-    private static volatile AdventureBridge bridge;
+    private volatile Boolean available;
+    private volatile AdventureBridge bridge;
 
-    private AdventureAccess() {}
+    boolean isAvailable() {
+        return available != null ? available : detectAvailable();
+    }
 
-    static boolean isAvailable() {
-        if (available != null) {
-            return available;
-        }
-
+    private boolean detectAvailable() {
         try {
             ClassLoader loader = AdventureAccess.class.getClassLoader();
             Class.forName("net.kyori.adventure.text.Component", false, loader);
@@ -26,29 +27,7 @@ final class AdventureAccess {
         }
     }
 
-    static AdventureBridge bridge(PrismaticCore core) {
-        if (!isAvailable())
-            throw new IllegalStateException("Adventure runtime is not available.");
-
-        AdventureBridge result = bridge;
-        if (result != null) return result;
-
-        synchronized (AdventureAccess.class) {
-            result = bridge;
-            if (result == null) {
-                result = createBridge(core);
-                bridge = result;
-            }
-        }
-
-        return result;
-    }
-
-    static Formatter<?> formatter(PrismaticCore core) {
-        return (Formatter<?>) bridge(core);
-    }
-
-    private static AdventureBridge createBridge(PrismaticCore core) {
+    private AdventureBridge createBridge(PrismaticCore core) {
         try {
             Class<?> type = Class.forName(
                     "me.croabeast.prismatic.Adventure",
@@ -62,5 +41,27 @@ final class AdventureAccess {
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException("Adventure runtime bridge could not be initialized.", e);
         }
+    }
+
+    AdventureBridge bridge(PrismaticCore core) {
+        if (!isAvailable())
+            throw new IllegalStateException("Adventure runtime is not available.");
+
+        AdventureBridge result = bridge;
+        return result != null ? result : initializeBridge(core);
+    }
+
+    private AdventureBridge initializeBridge(PrismaticCore core) {
+        AdventureBridge result;
+        synchronized (AdventureAccess.class) {
+            result = bridge;
+            bridge = result = result != null ? result : createBridge(core);
+        }
+
+        return result;
+    }
+
+    Formatter<?> formatter(PrismaticCore core) {
+        return (Formatter<?>) bridge(core);
     }
 }

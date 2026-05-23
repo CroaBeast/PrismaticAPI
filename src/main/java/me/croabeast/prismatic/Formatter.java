@@ -130,7 +130,15 @@ public interface Formatter<T> {
     String stripRGB(String string);
 
     /**
-     * Removes Bukkit colors, Bukkit special formatting and Prismatic RGB syntax from a string.
+     * Removes MiniMessage formatting tags from a string.
+     *
+     * @param string text to clean
+     * @return the string without MiniMessage tags
+     */
+    String stripMiniMessage(String string);
+
+    /**
+     * Removes Bukkit colors, Bukkit special formatting, MiniMessage tags and Prismatic RGB syntax from a string.
      *
      * @param string text to clean
      * @return the fully stripped plain-text string

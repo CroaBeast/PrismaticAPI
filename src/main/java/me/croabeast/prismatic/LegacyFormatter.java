@@ -55,6 +55,11 @@ final class LegacyFormatter implements Formatter<String> {
     }
 
     @Override
+    public String stripMiniMessage(String string) {
+        return core.stripMiniMessage(string);
+    }
+
+    @Override
     public String stripAll(String string) {
         return core.stripAll(string);
     }

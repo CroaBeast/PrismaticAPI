@@ -67,11 +67,9 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
 
     @Override
     public Component colorize(@Nullable Player player, String string) {
-        if (StringUtils.isBlank(string)) {
-            return Component.text(string == null ? "" : string);
-        }
-
-        return colorizeComponent(string, core.shouldUseLegacyColors(player));
+        return StringUtils.isBlank(string) ?
+                Component.text(string == null ? "" : string) :
+                colorizeComponent(string, core.shouldUseLegacyColors(player));
     }
 
     @Override
@@ -87,6 +85,11 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
     @Override
     public String stripRGB(String string) {
         return core.stripRGB(string);
+    }
+
+    @Override
+    public String stripMiniMessage(String string) {
+        return StringUtils.isBlank(string) ? string : MiniMessage.miniMessage().stripTags(string);
     }
 
     @Override
@@ -111,15 +114,10 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
 
     @Override
     public String colorizeLegacy(String string, boolean legacy) {
-        if (StringUtils.isBlank(string)) {
-            return string == null ? "" : string;
-        }
-
-        if (string.indexOf('<') == -1) {
-            return core.applyLegacyPipeline(string, legacy);
-        }
-
-        return serialize(colorizeComponent(string, legacy));
+        return StringUtils.isBlank(string) ? string == null ? "" : string :
+                string.indexOf('<') == -1 ?
+                        core.applyLegacyPipeline(string, legacy) :
+                        serialize(colorizeComponent(string, legacy));
     }
 
     private TokenizedComponents maskPrismaticBlocks(String string, boolean legacy) {
@@ -226,21 +224,21 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
 
     private Component downsample(Component component) {
         TextColor color = component.color();
-        if (color != null && !(color instanceof NamedTextColor)) {
-            component = component.color(NamedTextColor.nearestTo(color));
-        }
+        component = color != null && !(color instanceof NamedTextColor) ?
+                component.color(NamedTextColor.nearestTo(color)) :
+                component;
 
         List<Component> children = component.children();
-        if (children.isEmpty()) {
-            return component;
-        }
+        return children.isEmpty() ? component : component.children(mapChildren(children));
+    }
 
+    private List<Component> mapChildren(List<Component> children) {
         List<Component> mapped = new ArrayList<>(children.size());
         for (Component child : children) {
             mapped.add(downsample(child));
         }
 
-        return component.children(mapped);
+        return mapped;
     }
 
     private String token(int index) {
@@ -248,10 +246,12 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
     }
 
     private Component colorizeComponent(String string, boolean legacy) {
-        if (string.indexOf('<') == -1) {
-            return deserialize(core.applyLegacyPipeline(string, legacy));
-        }
+        return string.indexOf('<') == -1 ?
+                deserialize(core.applyLegacyPipeline(string, legacy)) :
+                colorizeMiniMessageComponent(string, legacy);
+    }
 
+    private Component colorizeMiniMessageComponent(String string, boolean legacy) {
         TokenizedComponents masked = maskPrismaticBlocks(string, legacy);
         String normalized = normalizeMiniMessage(masked.value);
 
