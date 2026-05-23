@@ -1,223 +1,451 @@
-# PrismaticAPI
+<div align="center">
 
-PrismaticAPI is a Bukkit/Paper text-formatting library for RGB colors, gradients, rainbows, MiniMessage-aware parsing and legacy-safe fallback.
+# 🌈 PrismaticAPI
 
-Version `1.4.0` reorganizes the public API around two facades backed by the same formatting engine:
+**The ultimate text-formatting engine for Bukkit/Paper plugins.**
 
-- `PrismaticAPI.legacy()` returns `Formatter<String>`
-- `PrismaticAPI.adventure()` returns `Formatter<Component>`
+RGB colors · Gradients · Rainbows · MiniMessage · Interactive Chat Components
 
-The old top-level methods such as `PrismaticAPI.colorize(...)` and `PrismaticAPI.applyGradient(...)` still exist and now delegate to `legacy()` for compatibility.
+[![Version](https://img.shields.io/badge/version-1.5.0-blueviolet?style=flat-square)](https://github.com/CroaBeast/PrismaticAPI)
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.16.5+-green?style=flat-square)](https://spigotmc.org)
+[![Java](https://img.shields.io/badge/Java-8+-orange?style=flat-square)](https://java.com)
+[![Adventure](https://img.shields.io/badge/Adventure-optional-blue?style=flat-square)](https://docs.advntr.dev)
 
-## What Changed In 1.4.0
+</div>
 
-- Added `PrismaticAPI.legacy()` as the always-safe string formatter facade.
-- Added `PrismaticAPI.adventure()` as the optional Adventure formatter facade.
-- Added `PrismaticAPI.isAdventureAvailable()` to guard Adventure-only code paths.
-- Removed `RichText`.
-- Removed `colorizeText(...)`, `applyColorText(...)`, `applyGradientText(...)` and `applyRainbowText(...)`.
-- Kept the existing legacy top-level helpers as compatibility delegates to `legacy()`.
+---
 
-## Features
+## ✨ What Is PrismaticAPI?
 
-- One formatting engine for legacy strings and Adventure components.
-- Multiple single-color RGB syntaxes.
-- Gradient and rainbow tags.
-- Optional MiniMessage support at runtime.
-- Player-aware legacy fallback through VNC/ViaVersion support.
-- Safe startup on runtimes where Adventure is not present.
+PrismaticAPI is a Bukkit/Paper text-formatting library that gives your plugin **beautiful, modern text** without the headache. One shared engine powers both legacy Bukkit strings and Adventure components — gradients, rainbows, per-player hex fallback, MiniMessage compatibility and interactive click/hover events all included.
 
-## Coordinates
+---
 
-```text
-groupId:    me.croabeast
-artifactId: PrismaticAPI
-version:    1.4.0
-```
+## 🚀 Features
 
-Add the repository that hosts your published artifact, then depend on `me.croabeast:PrismaticAPI:1.4.0`.
+- 🎨 **Multiple RGB syntaxes** — `{#ff8800}`, `%#ff8800%`, `[#ff8800]`, `<#ff8800>`, `&#ff8800`, `#ff8800`, `&xff8800`
+- 🌈 **Gradient & Rainbow tags** — color transitions per character, across as many color stops as you want
+- 💬 **MiniMessage integration** — mix Prismatic tags and MiniMessage tags in the same string (optional at runtime)
+- 🔮 **Adventure support** — produce `net.kyori.adventure.text.Component` output from the same pipeline, fully optional
+- 🕹️ **Interactive components** — click events, hover text, hover items, URL auto-detection
+- 🧠 **Player-aware formatting** — VNC + ViaVersion integration to serve hex or legacy output depending on the player's Minecraft version
+- 🛡️ **Safe by design** — Adventure is never required; the library boots cleanly even when it's absent
+- ⚡ **Backwards compatible** — the classic `PrismaticAPI.colorize(...)` methods still work unchanged
 
-If your plugin calls `PrismaticAPI.adventure()`, keep the Adventure API on your compile classpath and ensure the required Adventure runtime classes are present when the plugin starts.
+---
 
-## Supported Syntax
+## 📦 How to Import
 
-### Single RGB colors
+### Gradle (Kotlin DSL)
 
-- `{#ff8800}`
-- `%#ff8800%`
-- `[#ff8800]`
-- `<#ff8800>`
-- `&xff8800`
-- `#ff8800`
-- `&#ff8800`
+```kotlin
+repositories {
+    maven("https://croabeast.github.io/repo/")
+}
 
-### Gradients
-
-- `<g:ff0000>Hello</g:0000ff>`
-- `<gradient:ff0000>Hello</gradient:0000ff>`
-- `<#ff0000>Hello</#0000ff>`
-- `<#ff0000:#00ff00:#0000ff>Hello</gradient>`
-
-### Rainbows
-
-- `<rainbow:1>Hello</rainbow>`
-- `<r:1>Hello</r>`
-
-### Legacy formatting
-
-- `&a`
-- `&l`
-- `&n`
-- `&r`
-
-### MiniMessage
-
-When Adventure MiniMessage is present at runtime, standard MiniMessage tags can be mixed with Prismatic syntax in the same string.
-
-## Formatting Pipeline
-
-PrismaticAPI processes text in this order:
-
-1. MiniMessage, when the Adventure runtime is available.
-2. Prismatic multi-color blocks such as gradients and rainbows.
-3. Single RGB syntaxes.
-4. Legacy Bukkit formatting such as `&a`, `&l` and `&r`.
-
-This lets MiniMessage and Prismatic tags coexist without forcing Adventure to be present on every runtime.
-
-## API Overview
-
-### `PrismaticAPI.legacy()`
-
-`legacy()` returns `Formatter<String>`, which is always safe to use. It emits Bukkit/Bungee-compatible color-code strings.
-
-```java
-String raw = "<g:ff0000>Hello</g:0000ff> &lworld";
-String formatted = PrismaticAPI.legacy().colorize(player, raw);
-player.sendMessage(formatted);
-```
-
-### `PrismaticAPI.adventure()`
-
-`adventure()` returns `Formatter<Component>` and uses the same Prismatic parser to build Adventure components.
-
-Always guard this call when Adventure is optional:
-
-```java
-if (PrismaticAPI.isAdventureAvailable()) {
-    Component component = PrismaticAPI.adventure().colorize(player, "<#ff8800>PrismaticAPI");
+dependencies {
+    implementation("me.croabeast:PrismaticAPI:1.5.0")
 }
 ```
 
-If Adventure is not available and you call `PrismaticAPI.adventure()` anyway, the method throws `IllegalStateException` with a controlled error message instead of crashing with `NoClassDefFoundError`.
+### Gradle (Groovy DSL)
 
-### Top-level compatibility methods
+```groovy
+repositories {
+    maven { url 'https://croabeast.github.io/repo/' }
+}
 
-The classic entry points still work:
-
-```java
-String formatted = PrismaticAPI.colorize(player, "<rainbow:1>Chromatic</rainbow>");
-String gradient = PrismaticAPI.applyGradient("Hello", Color.RED, Color.BLUE, false);
+dependencies {
+    implementation 'me.croabeast:PrismaticAPI:1.5.0'
+}
 ```
 
-These methods delegate to the `legacy()` facade.
+### Maven
 
-## Important Behavior Notes
+```xml
+<repository>
+    <id>croabeast-repo</id>
+    <url>https://croabeast.github.io/repo/</url>
+</repository>
+
+<dependency>
+    <groupId>me.croabeast</groupId>
+    <artifactId>PrismaticAPI</artifactId>
+    <version>1.5.0</version>
+</dependency>
+```
+
+> **Tip:** If your plugin uses `PrismaticAPI.adventure()`, keep the Adventure API on your compile classpath and make sure the required Adventure runtime classes are present at startup.
+
+---
+
+## 🧩 Supported Syntax
+
+### 🎨 Single RGB Colors
+
+| Syntax | Example |
+|--------|---------|
+| Curly braces | `{#ff8800}` |
+| Percent signs | `%#ff8800%` |
+| Square brackets | `[#ff8800]` |
+| Angle brackets | `<#ff8800>` |
+| BungeeCord hex | `&xff8800` |
+| Plain hex | `#ff8800` |
+| Ampersand hex | `&#ff8800` |
+
+### 🌈 Gradients
+
+```
+<g:ff0000>Hello world</g:0000ff>
+<gradient:ff0000>Hello world</gradient:0000ff>
+<#ff0000>Hello world</#0000ff>
+<#ff0000:#00ff00:#0000ff>Hello world</gradient>   ← multi-stop!
+```
+
+### 🌀 Rainbows
+
+```
+<rainbow:1>Hello world</rainbow>
+<r:1>Hello world</r>
+```
+
+### 📜 Legacy Formatting
+
+```
+&a  green        &l  bold
+&c  red          &n  underline
+&6  gold         &o  italic
+&r  reset        &k  obfuscated
+```
+
+### 📝 MiniMessage (when Adventure is present)
+
+Standard MiniMessage tags (`<bold>`, `<red>`, `<gradient:...>`, etc.) can be freely mixed with Prismatic tags in the same string.
+
+---
+
+## 📖 Quick Start
+
+### 🟢 Legacy strings (always safe)
+
+```java
+// Basic colorize
+String colored = PrismaticAPI.colorize(player, "<g:ff0000>Hello</g:0000ff> &lworld!");
+player.sendMessage(colored);
+
+// Using the facade directly
+Formatter<String> legacy = PrismaticAPI.legacy();
+
+String gradient = legacy.applyGradient("Sunset",  new Color(255, 100, 0), new Color(255, 0, 100), false);
+String rainbow  = legacy.applyRainbow("Colorful!", 1.0f, false);
+String solid    = legacy.applyColor(new Color(0, 200, 255), "Aqua text", false);
+```
+
+### 🔵 Adventure components (optional)
+
+```java
+if (PrismaticAPI.isAdventureAvailable()) {
+    Formatter<Component> adv = PrismaticAPI.adventure();
+    Component component = adv.colorize(player, "<rainbow:1>PrismaticAPI</rainbow>");
+    player.sendMessage(component); // Paper native API
+}
+```
+
+### 🖱️ Interactive chat components
+
+**Single component** — one piece of text with click + hover:
+
+```java
+BaseComponent[] msg = PrismaticAPI
+        .chatComponent("<#ff8800>Click me!")
+        .setClick("run", "/help")
+        .setHover("&eOpen help menu<n>&7Uses Prismatic colors")
+        .compile(player);
+
+player.spigot().sendMessage(msg);
+```
+
+**Multi-component** — parse several interactive segments from markup:
+
+```java
+// Markup format: <action:"argument">text</text>
+BaseComponent[] msg = PrismaticAPI
+        .multiComponent(
+            "<run:\"/spawn\">&aGo to Spawn</text>" +
+            " &7| " +
+            "<suggest:\"/msg \">&bSend a Message</text>"
+        )
+        .compile(player);
+
+player.spigot().sendMessage(msg);
+```
+
+**Supported click actions in markup:** `execute` / `click` / `run` / `suggest` / `url` / `file` / `page` / `copy`
+
+---
+
+## 🕹️ Chat Components In Depth
+
+PrismaticAPI offers two types of interactive chat components, both compiled to `BaseComponent[]` for Spigot/Bungee's `player.spigot().sendMessage(...)`.
+
+---
+
+### 📌 `ChatComponent` — single interactive segment
+
+A `ChatComponent` wraps one raw message and lets you attach a **click event**, a **text hover** or an **item hover** to it.
+
+```java
+ChatComponent<?> comp = PrismaticAPI.chatComponent("<#ff8800>Hello!");
+
+// attach events
+comp.setClick(ChatComponent.Click.EXECUTE, "/spawn");
+comp.setHover("&eTeleport to spawn\n&7Click to confirm");
+
+// compile and send
+player.spigot().sendMessage(comp.compile(player));
+```
+
+#### 🖱️ Click events
+
+The `Click` enum lists every supported action. Each constant also accepts short string aliases via `setClick(String, String)`:
+
+| Constant | String aliases | What it does |
+|----------|---------------|--------------|
+| `EXECUTE` | `execute`, `click`, `run`, `run_command` | Runs a command as the player |
+| `OPEN_URL` | `open_url`, `url` | Opens a URL in the browser |
+| `OPEN_FILE` | `open_file`, `file` | Opens a file on the client machine |
+| `SUGGEST` | `suggest`, `suggest_command` | Inserts text into chat without sending |
+| `CHANGE_PAGE` | `change_page`, `page` | Flips a book page |
+| `CLIPBOARD` | `clipboard`, `copy`, `copy_to_clipboard` | Copies text to clipboard |
+
+```java
+// using the enum constant
+comp.setClick(ChatComponent.Click.OPEN_URL, "https://example.com");
+
+// using a string alias
+comp.setClick("url", "https://example.com");
+
+// compact "action:payload" shorthand
+comp.setClick("run:/spawn");
+```
+
+#### 💬 Text hover
+
+Hover text can be supplied as a `List<String>`, a vararg array or a single string. Lines are separated with `<n>` inside a single string:
+
+```java
+// list of lines
+comp.setHover(List.of("&eLine one", "&7Line two"));
+
+// varargs
+comp.setHover("&eLine one", "&7Line two");
+
+// single string with <n> separator
+comp.setHover("&eLine one<n>&7Line two");
+```
+
+Prismatic color codes are applied to hover text at compile time using the same player-aware pipeline.
+
+#### 📦 Item hover
+
+Pass a raw SNBT/NBT JSON string, or a Base64-encoded payload prefixed with `b64:` to avoid escaping issues:
+
+```java
+// raw JSON
+comp.setHoverItem("{id:\"minecraft:diamond_sword\",Count:1b}");
+
+// base64-encoded (recommended for complex NBT)
+comp.setHoverItem("b64:" + Base64.getEncoder().encodeToString(nbtJson.getBytes()));
+```
+
+#### 🔗 URL auto-detection
+
+If the raw message contains a URL (starting with `http://`, `https://` or `www.`), an `OPEN_URL` click event is **attached automatically** during `compile()` — no need to call `setClick` manually.
+
+---
+
+### 📋 `MultiComponent` — composite interactive message
+
+A `MultiComponent` parses a raw string into multiple segments, each of which can carry independent events. Segments without markup are treated as plain text; URLs in plain segments get auto-linked.
+
+```java
+MultiComponent multi = PrismaticAPI.multiComponent(
+    "<run:\"/spawn\">&aGo to Spawn</text>" +
+    " &7| " +
+    "<suggest:\"/msg \">&bMessage a player</text>"
+);
+
+player.spigot().sendMessage(multi.compile(player));
+```
+
+#### 🏷️ Default markup format
+
+```
+<action:"argument">visible text</text>
+<action:"arg1"|action2:"arg2">visible text</text>
+```
+
+- The **opening tag** holds one or two `action:"argument"` pairs separated by `|`.
+- The **closing tag** is always `</text>`.
+- Supported actions inside the tag: all click aliases from the table above, plus `hover` and `hover_item`.
+
+```
+<!-- click only -->
+<run:"/spawn">Go to Spawn</text>
+
+<!-- hover only -->
+<hover:"&eThis is hover text<n>&7Second line">Hover over me</text>
+
+<!-- item hover only -->
+<hover_item:"{id:\"minecraft:diamond\",Count:1b}">A diamond</text>
+
+<!-- click + hover (pipe-separated) -->
+<run:"/spawn"|hover:"&eTeleport home">Go Home</text>
+
+<!-- suggest + hover_item -->
+<suggest:"/give "|hover_item:"b64:eyJpZCI6Imdia...">Give item</text>
+```
+
+#### 🔀 Multi-stop actions and methods
+
+Beyond markup, you can also apply events programmatically after construction:
+
+```java
+MultiComponent multi = PrismaticAPI.multiComponent("Hello </text>World</text>");
+
+// affects only the LAST segment
+multi.setClick("run", "/last");
+multi.setHover("Hover on last");
+
+// affects ALL segments at once
+multi.setClickToAll("run", "/all");
+multi.setHoverToAll("Same hover on every segment");
+multi.setHoverItemToAll("{id:\"minecraft:apple\",Count:1b}");
+
+// append more text or components
+multi.append(" &7— extra text");
+multi.append(PrismaticAPI.chatComponent("&cAnother segment").setClick("url", "https://example.com"));
+
+// deep copy
+MultiComponent copy = multi.copy();
+
+// serialize back to markup string
+String markup = multi.toFormattedString();
+```
+
+#### 🎨 Color continuity
+
+When a segment does not begin with an explicit color code, the **last color of the previous segment** is prepended automatically. This prevents unexpected white resets between segments:
+
+```
+"&aGreen text</text> and more text</text>"
+                          ↑ automatically gets &a prepended
+```
+
+---
+
+## ⚙️ Formatting Pipeline
+
+PrismaticAPI processes text in this exact order:
+
+```
+Input string
+    │
+    ├─ 1. MiniMessage  ──────────── (only when Adventure is present)
+    ├─ 2. Prismatic multi-color ─── gradients & rainbows
+    ├─ 3. Single RGB codes ───────── {#ff8800}, <#ff8800>, &xff8800 …
+    └─ 4. Legacy Bukkit codes ────── &a, &l, &r …
+          │
+          ▼
+    Formatted output
+```
+
+This order lets MiniMessage and Prismatic tags coexist without requiring Adventure on every runtime.
+
+---
+
+## 🔧 Utility Methods
+
+Both `legacy()` and `adventure()` facades expose the same helpers:
+
+| Method | Description |
+|--------|-------------|
+| `fromString(hex)` | Parse a color token or hex string into `ChatColor` |
+| `stripBukkit(string)` | Remove `&a`, `§a`-style codes |
+| `stripSpecial(string)` | Remove bold, italic, underline, etc. |
+| `stripRGB(string)` | Remove gradient / rainbow / single-RGB syntax |
+| `stripMiniMessage(string)` | Remove MiniMessage tags |
+| `stripAll(string)` | Remove everything — returns plain text |
+| `startsWithColor(string)` | `true` if the formatted string begins with a color code |
+| `getStartColor(string)` | First color code in the formatted string |
+| `getEndColor(string)` | Last color code in the formatted string |
+
+---
+
+## ⚠️ Important Behavior Notes
 
 ### `colorize(String)` is conservative
 
-`PrismaticAPI.colorize(String)` and `PrismaticAPI.legacy().colorize(String)` call the formatter without a `Player` context.
-
-That means PrismaticAPI cannot know whether the receiver supports hex colors, so it falls back to legacy-safe output.
-
-If you want player-aware RGB preservation, call:
+When called **without** a `Player`, PrismaticAPI cannot detect whether the receiver supports hex, so it **downgrades to the nearest legacy color**. For player-aware output:
 
 ```java
+// ✅ player-aware: preserves RGB when the player's version supports it
 String formatted = PrismaticAPI.legacy().colorize(player, raw);
+
+// ⚠️ no player context: legacy fallback always
+String formatted = PrismaticAPI.colorize(raw);
 ```
 
-If you want exact RGB output without a player capability check, use the explicit color methods with `legacy = false`:
+### Adventure is always optional
+
+PrismaticAPI runs perfectly without Adventure. Only `PrismaticAPI.adventure()` requires it. Guard the call:
 
 ```java
-String solid = PrismaticAPI.legacy().applyColor(new Color(255, 136, 0), "Hello", false);
-String gradient = PrismaticAPI.legacy().applyGradient("Hello", Color.RED, Color.BLUE, false);
-String rainbow = PrismaticAPI.legacy().applyRainbow("Hello", 1.0f, false);
+if (PrismaticAPI.isAdventureAvailable()) {
+    // safe to call PrismaticAPI.adventure()
+}
 ```
 
-### Adventure is optional
-
-PrismaticAPI can run perfectly fine without Adventure on the classpath as long as you stay on `legacy()` or the compatibility methods.
-
-`PrismaticAPI.adventure()` requires these classes at runtime:
-
+Required Adventure classes at runtime:
 - `net.kyori.adventure.text.Component`
 - `net.kyori.adventure.text.minimessage.MiniMessage`
 - `net.kyori.adventure.text.minimessage.tag.resolver.TagResolver`
 - `net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer`
 
-### MiniMessage support is shared
+---
 
-Both facades use the same parsing pipeline. If MiniMessage is available:
+## 🔄 Migration from 1.3.x
 
-- standard MiniMessage tags are deserialized first
-- Prismatic gradients and rainbows are preserved safely during MiniMessage parsing
-- output is downsampled when the target must remain legacy-safe
+| Old API | New API |
+|---------|---------|
+| `PrismaticAPI.colorize(player, raw)` | Unchanged ✅ |
+| `PrismaticAPI.applyGradient(...)` | Unchanged ✅ |
+| `RichText text = PrismaticAPI.colorizeText(player, raw)` | `PrismaticAPI.adventure().colorize(player, raw)` |
+| `text.component()` | Result of `adventure().colorize(...)` is already a `Component` |
+| `applyColorText(...)` | `PrismaticAPI.adventure().applyColor(...)` |
+| `applyGradientText(...)` | `PrismaticAPI.adventure().applyGradient(...)` |
+| `applyRainbowText(...)` | `PrismaticAPI.adventure().applyRainbow(...)` |
 
-If MiniMessage is not available, Prismatic-specific formatting and legacy color codes still work normally.
+---
 
-## Migration From 1.3.x
-
-### Before
-
-```java
-String legacy = PrismaticAPI.colorize(player, raw);
-RichText text = PrismaticAPI.colorizeText(player, raw);
-Component component = text.component();
-```
-
-### After
-
-```java
-String legacy = PrismaticAPI.colorize(player, raw);
-
-if (PrismaticAPI.isAdventureAvailable()) {
-    Component component = PrismaticAPI.adventure().colorize(player, raw);
-}
-```
-
-Migration summary:
-
-- Replace `RichText` usage with `PrismaticAPI.adventure()`.
-- Replace `colorizeText(...)` with `PrismaticAPI.adventure().colorize(...)`.
-- Replace `applyColorText(...)`, `applyGradientText(...)` and `applyRainbowText(...)` with the corresponding `adventure()` methods.
-- Keep existing legacy string code unchanged if you only need Bukkit-style strings.
-
-## Useful Utility Methods
-
-Both facades expose the same helper methods:
-
-- `fromString(...)`
-- `stripBukkit(...)`
-- `stripSpecial(...)`
-- `stripRGB(...)`
-- `stripAll(...)`
-- `startsWithColor(...)`
-- `getStartColor(...)`
-- `getEndColor(...)`
-
-These methods are useful for inspecting or cleaning already-formatted strings without duplicating parsing logic in downstream plugins.
-
-## Local Development
-
-This project expects the `VNC` project to exist either:
-
-- next to this repository as `../VNC`
-- or inside this repository as `VNC`
-
-The build compiles the sibling `VNC` jar before compiling PrismaticAPI.
-
-## Build
+## 🛠️ Building
 
 ```bash
 ./gradlew jar
 ```
+
+This project depends on **VNC** (`me.croabeast.vnc:VNC:1.2.0`) from the CroaBeast Maven repository, which is automatically resolved during the build.
+
+---
+
+## 📄 License
+
+See [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+
+Made with 💜 by **CroaBeast**
+
+</div>
