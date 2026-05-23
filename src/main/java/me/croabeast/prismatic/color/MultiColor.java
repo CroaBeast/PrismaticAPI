@@ -80,7 +80,10 @@ class MultiColor implements ColorPattern {
      * @return an array of substrings
      */
     static String[] splitString(String text, int parts) {
-        if (parts < 2) return new String[] {text};
+        return parts < 2 ? new String[] {text} : splitStringParts(text, parts);
+    }
+
+    private static String[] splitStringParts(String text, int parts) {
         String[] list = new String[parts];
         double length = text.length();
         int start = 0;
@@ -100,7 +103,7 @@ class MultiColor implements ColorPattern {
      * @return the {@link Color} object representing the hex color
      */
     static Color getColor(String line) {
-        return new Color(Integer.parseInt(line, 16));
+        return new Color(Integer.parseInt(line.startsWith("#") ? line.substring(1) : line, 16));
     }
 
     /**
@@ -112,7 +115,7 @@ class MultiColor implements ColorPattern {
      */
     MultiColor() {
         colors.add(new ColorPattern() {
-            final Pattern custom = Pattern.compile("<(#([a-f\\d]{6})(:#([a-f\\d]{6}))+)>(.+?)</g(radient)?>");
+            final Pattern custom = Pattern.compile("(?i)<(#([a-f\\d]{6})(:#([a-f\\d]{6}))+)>(.+?)</g(radient)?>");
 
             @Override
             public @NotNull String apply(String string, boolean legacy) {
@@ -127,12 +130,7 @@ class MultiColor implements ColorPattern {
                     int i = 0;
                     while (i < count) {
                         String textPart = text[i];
-                        if (i > 0) {
-                            final String prev = text[i - 1];
-                            int l = prev.length() - 1;
-                            char last = prev.toCharArray()[l];
-                            textPart = last + textPart;
-                        }
+                        textPart = i > 0 ? text[i - 1].charAt(text[i - 1].length() - 1) + textPart : textPart;
                         textPart = PrismaticAPI.applyGradient(
                                 textPart,
                                 getColor(colors[i]),
@@ -140,12 +138,7 @@ class MultiColor implements ColorPattern {
                                 legacy
                         );
 
-                        if (i > 0) {
-                            int trimLength = PrismaticAPI.fromString(colors[i], legacy).toString().length() + 1;
-                            result.append(textPart.length() > trimLength ? textPart.substring(trimLength) : "");
-                        } else {
-                            result.append(textPart);
-                        }
+                        result.append(i > 0 ? trimGradientOverlap(colors[i], textPart, legacy) : textPart);
                         i++;
                     }
                     m.appendReplacement(output, Matcher.quoteReplacement(result.toString()));
@@ -165,6 +158,11 @@ class MultiColor implements ColorPattern {
         new Gradient("#");
         new Rainbow("rainbow");
         new Rainbow("r");
+    }
+
+    private String trimGradientOverlap(String color, String text, boolean legacy) {
+        int trimLength = PrismaticAPI.fromString(color, legacy).toString().length() + 1;
+        return text.length() > trimLength ? text.substring(trimLength) : "";
     }
 
     /**

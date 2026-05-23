@@ -31,16 +31,16 @@ final class ColorEngine {
             .put(new Color(16777215), ChatColor.getByChar('f'))
             .build();
 
-    private static final Pattern BUKKIT_COLOR_PATTERN = Pattern.compile("(?i)[&§][a-f\\dx]");
-    private static final Pattern SPECIAL_COLOR_PATTERN = Pattern.compile("(?i)[&§][k-orx]");
+    private static final Pattern BUKKIT_COLOR_PATTERN = Pattern.compile("(?i)[&\\u00A7][a-f\\dx]");
+    private static final Pattern SPECIAL_COLOR_PATTERN = Pattern.compile("(?i)[&\\u00A7][k-orx]");
 
     private static final String COLOR_PATTERN = "(?i)" +
-            "(?<!§x)(?<!§x§[0-9A-F])" +
-            "(?<!§x(?:§[0-9A-F]){2})" +
-            "(?<!§x(?:§[0-9A-F]){3})" +
-            "(?<!§x(?:§[0-9A-F]){4})" +
-            "(?<!§x(?:§[0-9A-F]){5})" +
-            "(?>§x(?:§[0-9A-F]){6}|§[0-9A-FK-OR])";
+            "(?<!\\u00A7x)(?<!\\u00A7x\\u00A7[0-9A-F])" +
+            "(?<!\\u00A7x(?:\\u00A7[0-9A-F]){2})" +
+            "(?<!\\u00A7x(?:\\u00A7[0-9A-F]){3})" +
+            "(?<!\\u00A7x(?:\\u00A7[0-9A-F]){4})" +
+            "(?<!\\u00A7x(?:\\u00A7[0-9A-F]){5})" +
+            "(?>\\u00A7x(?:\\u00A7[0-9A-F]){6}|\\u00A7[0-9A-FK-OR])";
 
     private static final Pattern COLOR_CODE_PATTERN = Pattern.compile(COLOR_PATTERN);
     private static final Pattern START_COLOR_CODE_PATTERN = Pattern.compile("^" + COLOR_PATTERN);
@@ -50,26 +50,25 @@ final class ColorEngine {
     }
 
     ChatColor fromString(String string) {
-        if (StringUtils.isBlank(string))
-            return ChatColor.WHITE;
+        return StringUtils.isBlank(string) ? ChatColor.WHITE : fromNonBlankString(string);
+    }
 
+    private ChatColor fromNonBlankString(String string) {
         ChatColor color = ChatColor.WHITE;
 
-        if (string.matches("^[&§]x"))
-            string = string.substring(2);
-        string = string.replace("&", "").replace("§", "");
+        string = string.matches("^[&\\u00A7]x") ? string.substring(2) : string;
+        string = string.replace("&", "").replace("\u00A7", "");
 
-        if (string.length() == 1 &&
-                ((color = ChatColor.getByChar(string.toCharArray()[0])) != null))
-            return color;
+        ChatColor legacy = string.length() == 1 ? ChatColor.getByChar(string.toCharArray()[0]) : null;
+        return legacy != null ? legacy : string.length() == 6 ? parseHexColor(string, color) : color;
+    }
 
-        if (string.length() == 6) {
-            try {
-                color = ChatColor.of('#' + string);
-            } catch (Exception ignored) {}
-        }
+    private ChatColor parseHexColor(String string, ChatColor fallback) {
+        try {
+            return ChatColor.of('#' + string);
+        } catch (Exception ignored) {}
 
-        return color;
+        return fallback;
     }
 
     String applyColor(Color color, String string, boolean legacy) {
@@ -87,27 +86,21 @@ final class ColorEngine {
     }
 
     String stripBukkit(String string) {
-        if (StringUtils.isBlank(string)) return string;
-        return BUKKIT_COLOR_PATTERN.matcher(string).replaceAll("");
+        return StringUtils.isBlank(string) ? string : BUKKIT_COLOR_PATTERN.matcher(string).replaceAll("");
     }
 
     String stripSpecial(String string) {
-        if (StringUtils.isBlank(string)) return string;
-        return SPECIAL_COLOR_PATTERN.matcher(string).replaceAll("");
+        return StringUtils.isBlank(string) ? string : SPECIAL_COLOR_PATTERN.matcher(string).replaceAll("");
     }
 
     boolean startsWithColor(String string) {
-        if (StringUtils.isBlank(string)) return false;
-        return START_COLOR_CODE_PATTERN.matcher(string).find();
+        return !StringUtils.isBlank(string) && START_COLOR_CODE_PATTERN.matcher(string).find();
     }
 
     @Nullable
     String getStartColor(String string) {
         Matcher matcher = COLOR_CODE_PATTERN.matcher(string);
-        String color = null;
-        if (matcher.find())
-            color = matcher.group();
-        return color;
+        return matcher.find() ? matcher.group() : null;
     }
 
     @Nullable
@@ -176,7 +169,7 @@ final class ColorEngine {
     }
 
     private boolean isColorPrefix(char c) {
-        return c == '&' || c == '§';
+        return c == '&' || c == '\u00A7';
     }
 
     private boolean isLegacyCode(char c) {
@@ -189,9 +182,10 @@ final class ColorEngine {
     }
 
     private String apply(String source, ChatColor[] colors) {
-        if (StringUtils.isBlank(source))
-            return source;
+        return StringUtils.isBlank(source) ? source : applyNonBlank(source, colors);
+    }
 
+    private String applyNonBlank(String source, ChatColor[] colors) {
         StringBuilder specials = new StringBuilder();
         StringBuilder builder = new StringBuilder(source.length() * 2);
         char[] characters = source.toCharArray();
