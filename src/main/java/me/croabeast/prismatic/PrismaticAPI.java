@@ -313,14 +313,13 @@ public class PrismaticAPI {
         return stripRGB(stripSpecial(stripBukkit(string)));
     }
 
-    /**
-     * A regular expression pattern that matches various color codes.
-     * <p>
-     * Supported formats include Bukkit color codes (using {@code &} or {@code §}),
-     * hexadecimal color codes in various notations, and legacy formats.
-     * </p>
-     */
-    private final String COLOR_PATTERN = "[&§][a-fk-or\\d]|[{]#([a-f\\d]{6})[}]|<#([a-f\\d]{6})>|%#([a-f\\d]{6})%|\\[#([a-f\\d]{6})]|&?#([a-f\\d]{6})|&x([a-f\\d]{6})";
+    private final String COLOR_PATTERN = "(?i)" +
+            "(?<!§x)(?<!§x§[0-9A-F])" +
+            "(?<!§x(?:§[0-9A-F]){2})" +
+            "(?<!§x(?:§[0-9A-F]){3})" +
+            "(?<!§x(?:§[0-9A-F]){4})" +
+            "(?<!§x(?:§[0-9A-F]){5})" +
+            "(?>§x(?:§[0-9A-F]){6}|§[0-9A-FK-OR])";
 
     /**
      * Checks if the provided string starts with a valid color code.
@@ -329,21 +328,21 @@ public class PrismaticAPI {
      * @return {@code true} if the string starts with a color code; {@code false} otherwise
      */
     public boolean startsWithColor(String string) {
-        if (StringUtils.isBlank(string))
-            return false;
-        Pattern p = Pattern.compile("^" + COLOR_PATTERN);
-        Matcher matcher = p.matcher(string);
+        if (StringUtils.isBlank(string)) return false;
+        string = colorize(string);
+        Matcher matcher = Pattern.compile("^" + COLOR_PATTERN).matcher(string);
         return matcher.find();
     }
 
     /**
-     * Retrieves the last color code found in the provided string.
+     * Retrieves the end color code found in the provided string.
      *
      * @param string the string to search for color codes
-     * @return the last color code as a {@link String}, or {@code null} if none is found
+     * @return the end color code as a {@link String}, or {@code null} if none is found
      */
     @Nullable
-    public String getLastColor(String string) {
+    public String getEndColor(String string) {
+        string = colorize(string);
         Matcher matcher = Pattern.compile(COLOR_PATTERN).matcher(string);
         String color = null;
         while (matcher.find()) color = matcher.group();
