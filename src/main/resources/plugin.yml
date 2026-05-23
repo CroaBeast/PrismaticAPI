@@ -1,7 +1,7 @@
-main: me.croabeast.prismatic.plugin.PrismaticPlugin
+main: me.croabeast.prismatic.PrismaticAPI
 
 name: PrismaticAPI
-version: '${project.version}'
+version: '${version}'
 prefix: Prismatic
 authors: [ CroaBeast ]
 api-version: 1.13
