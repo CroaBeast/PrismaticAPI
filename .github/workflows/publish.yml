@@ -27,14 +27,20 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Build with Maven
-        run: mvn -B clean package
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
-      - name: Get version from Maven
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew --no-daemon clean jar sourcesJar javadocJar
+
+      - name: Get version from Gradle
         id: version
         shell: bash
         run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          VERSION=$(./gradlew -q properties --property version | awk '/^version:/ {print $2; exit}')
           if [ -z "$VERSION" ]; then
             echo "Could not determine project version"
             exit 1
@@ -48,9 +54,9 @@ jobs:
           name: PrismaticAPI-artifacts-${{ env.VERSION }}
           if-no-files-found: error
           path: |
-            target/${{ env.PROJECT_NAME }}-${{ env.VERSION }}.jar
-            target/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-sources.jar
-            target/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-javadoc.jar
+            build/libs/${{ env.PROJECT_NAME }}-${{ env.VERSION }}.jar
+            build/libs/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-sources.jar
+            build/libs/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-javadoc.jar
 
       - name: Checkout Maven repository
         if: github.event_name != 'pull_request'
@@ -74,9 +80,9 @@ jobs:
 
           mkdir -p "$DEST_DIR"
 
-          cp "target/${ART}.jar" "$DEST_DIR/${ART}.jar"
-          cp "target/${ART}-sources.jar" "$DEST_DIR/${ART}-sources.jar"
-          cp "target/${ART}-javadoc.jar" "$DEST_DIR/${ART}-javadoc.jar"
+          cp "build/libs/${ART}.jar" "$DEST_DIR/${ART}.jar"
+          cp "build/libs/${ART}-sources.jar" "$DEST_DIR/${ART}-sources.jar"
+          cp "build/libs/${ART}-javadoc.jar" "$DEST_DIR/${ART}-javadoc.jar"
 
           cat > "$DEST_DIR/${ART}.pom" << EOF
           <?xml version="1.0" encoding="UTF-8"?>
