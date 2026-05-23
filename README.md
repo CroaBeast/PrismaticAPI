@@ -1,189 +1,139 @@
-<p align="center">
-  <a href="https://discord.com/invite/gzzhVqgy3b" alt="Support Server">
-    <img alt="Discord" src="https://img.shields.io/discord/826555143398752286?style=for-the-badge&logo=discord&label=Support%20Server&color=635aea">
-  </a>
-  <img alt="Java 8+" src="https://img.shields.io/badge/Java-8%2B-orange?style=for-the-badge&logo=openjdk">
-  <img alt="License GPLv3" src="https://img.shields.io/badge/License-GPLv3-blue?style=for-the-badge">
-</p>
+# PrismaticAPI
 
-<h1 align="center">PrismaticAPI 🌈</h1>
+PrismaticAPI is a Bukkit/Paper text-formatting library focused on RGB colors, gradients, rainbow effects, MiniMessage compatibility, and legacy fallback.
 
-<p align="center">
-  Advanced color toolkit for <b>Bukkit / Spigot / Paper</b> plugins.<br>
-  Gradients, rainbow effects, single RGB formats, MiniMessage-safe parsing, and legacy fallback in one place.
-</p>
+It is designed for plugin code that needs one formatting pipeline but multiple output forms:
 
----
+- Plain legacy strings for `Player#sendMessage(...)`
+- Adventure components when MiniMessage is available
+- Automatic downsampling for older client versions through VNC
 
-## ✨ Why PrismaticAPI?
+## Highlights
 
-PrismaticAPI started as a fork of [IridiumColorAPI](https://github.com/IridiumLLC/IridiumColorAPI), then evolved with a broader parser and a more complete formatting pipeline.
+- Multiple RGB syntaxes in one parser
+- Gradient and rainbow tags
+- Optional MiniMessage integration
+- `RichText` results when you want both component and legacy output
+- Version-aware fallback using VNC and ViaVersion-aware player checks
 
-It helps you:
+## Formatting pipeline
 
-- Paint text with smooth gradients and rainbow effects.
-- Parse multiple custom RGB syntaxes in a single pass.
-- Keep compatibility with modern RGB and legacy 16-color clients.
-- Convert output to plain strings or Adventure `TextComponent`.
-- Strip any formatting quickly when you need clean text.
+`PrismaticAPI` processes text in this order:
 
----
+1. MiniMessage, when Adventure MiniMessage is present at runtime
+2. Prismatic multi-color blocks such as gradients and rainbows
+3. Single RGB color syntaxes
+4. Legacy ampersand formatting such as `&a`, `&l`, and `&r`
 
-## 🧠 Processing Pipeline
+This keeps MiniMessage and Prismatic tags from stepping on each other while still producing a final legacy string for Bukkit APIs.
 
-`PrismaticAPI.colorize(...)` processes text in this exact order:
+## Supported formats
 
-1. MiniMessage parsing (only if MiniMessage is available at runtime)
-2. Multi-color formats (`gradient` and `rainbow`)
-3. Single-color RGB formats
-4. Legacy ampersand translation (`&a`, `&l`, etc.)
+### Single RGB colors
 
-This order keeps complex tags stable and avoids conflicts between format types.
+- `{#ff8800}`
+- `%#ff8800%`
+- `[#ff8800]`
+- `<#ff8800>`
+- `&xff8800`
+- `#ff8800`
+- `&#ff8800`
 
----
+### Gradients
 
-## 🎨 Supported Color Formats
+- `<g:ff0000>Hello</g:0000ff>`
+- `<gradient:ff0000>Hello</gradient:0000ff>`
+- `<#ff0000>Hello</#0000ff>`
+- `<#ff0000:#00ff00:#0000ff>Hello</gradient>`
 
-All custom Prismatic formats are case-insensitive and use 6-digit hex (`RRGGBB`).
+### Rainbows
 
-### Gradient 🟣🔵🟢
+- `<rainbow:1>Hello</rainbow>`
+- `<r:1>Hello</r>`
 
-| Format | Description |
-| --- | --- |
-| `<g:RRGGBB>text</g:RRGGBB>` | Short gradient tag |
-| `<gradient:RRGGBB>text</gradient:RRGGBB>` | Long gradient tag |
-| `<#RRGGBB>text</#RRGGBB>` | Hash-style gradient tag |
-| `<#RRGGBB:#RRGGBB[:#RRGGBB...]>text</g>` | Multi-stop gradient with short close tag |
-| `<#RRGGBB:#RRGGBB[:#RRGGBB...]>text</gradient>` | Multi-stop gradient with long close tag |
+## Quick usage
 
-Gradient tags can include internal color stops:
-
-- `<g:ff0000>Hello <g:00ff00>World</g:0000ff>`
-- `<gradient:ff0000>Hello <gradient:00ff00>World</gradient:0000ff>`
-- `<#ff0000>Hello <#00ff00>World</#0000ff>`
-
-### Rainbow 🌈
-
-| Format | Description |
-| --- | --- |
-| `<rainbow:NUMBER>text</rainbow>` | Full rainbow tag |
-| `<r:NUMBER>text</r>` | Short rainbow tag |
-
-`NUMBER` accepts 1 to 3 digits and is parsed as the saturation value.
-
-### Single Color 🎯
-
-| Format | Example |
-| --- | --- |
-| `{#RRGGBB}` | `{#ff8800}Hello` |
-| `%#RRGGBB%` | `%#ff8800%Hello` |
-| `[#RRGGBB]` | `[#ff8800]Hello` |
-| `<#RRGGBB>` | `<#ff8800>Hello` |
-| `&xRRGGBB` | `&xff8800Hello` |
-| `#RRGGBB` | `#ff8800Hello` |
-| `&#RRGGBB` | `&#ff8800Hello` |
-
----
-
-## 🚀 Quick Usage
-
-### 1. Colorize a message for a player
+### 1. Get a legacy string
 
 ```java
-Player player = Bukkit.getPlayer("a player reference");
-String raw = "<g:ff0000>Hello <gradient:00ff00>world</gradient:0000ff> &l!";
-String colored = PrismaticAPI.colorize(player, raw);
-player.sendMessage(colored);
+String raw = "<g:ff0000>Hello</g:0000ff> &lworld";
+String formatted = PrismaticAPI.colorize(raw);
+player.sendMessage(formatted);
 ```
 
-### 2. Get an Adventure component
+### 2. Format for a specific player
 
 ```java
-TextComponent component = PrismaticAPI.colorizeAsComponent("<rainbow:1>PrismaticAPI</rainbow>");
+String raw = "<rainbow:1>Chromatic</rainbow>";
+String formatted = PrismaticAPI.colorize(player, raw);
 ```
 
-### 3. Strip formatting
+When ViaVersion is installed, PrismaticAPI uses the player's effective version to decide whether RGB can be preserved or should be downsampled.
+
+### 3. Keep both component and legacy output
 
 ```java
-String raw = "&#00ff99Clean &lthis <rainbow:1>text</rainbow>";
-String plain = PrismaticAPI.stripAll(raw);
+RichText text = PrismaticAPI.colorizeText(player, "<#ff8800>PrismaticAPI");
+
+player.sendMessage(text.asLegacy());
+Component component = text.component();
 ```
 
----
+### 4. Build colors programmatically
 
-## 🧰 API Highlights
-
-| Method | Purpose |
-| --- | --- |
-| `colorize(Player, String)` | Full pipeline with client legacy detection |
-| `colorize(String)` | Full pipeline without player context |
-| `colorizeAsComponent(...)` | Returns Adventure `TextComponent` |
-| `applyGradient(...)` | Programmatic gradient application |
-| `applyRainbow(...)` | Programmatic rainbow application |
-| `stripBukkit(...)` | Removes `&`/`§` legacy color markers |
-| `stripSpecial(...)` | Removes formatting markers (`k-o`, `r`, etc.) |
-| `stripRGB(...)` | Removes custom Prismatic RGB formats |
-| `stripAll(...)` | Removes all known formatting |
-
----
-
-## 📦 Installation
-
-Replace `${version}` with your target release.
-
-### Maven
-
-```xml
-<repositories>
-    <repository>
-        <id>croabeast-repo</id>
-        <url>https://croabeast.github.io/repo/</url>
-    </repository>
-</repositories>
-
-<dependencies>
-    <dependency>
-        <groupId>me.croabeast</groupId>
-        <artifactId>PrismaticAPI</artifactId>
-        <version>${version}</version>
-        <scope>compile</scope>
-    </dependency>
-</dependencies>
+```java
+String solid = PrismaticAPI.applyColor(new Color(255, 136, 0), "Hello", false);
+String gradient = PrismaticAPI.applyGradient("Hello", Color.RED, Color.BLUE, false);
+String rainbow = PrismaticAPI.applyRainbow("Hello", 1.0f, false);
 ```
 
-### Gradle
+## Useful API entry points
 
-```groovy
-repositories {
-    maven {
-        url "https://croabeast.github.io/repo/"
-    }
-}
+- `colorize(String)` returns a formatted legacy string
+- `colorize(Player, String)` returns a formatted legacy string tailored to that player
+- `colorizeText(...)` returns `RichText`
+- `applyColorText(...)`, `applyGradientText(...)`, and `applyRainbowText(...)` return `RichText`
+- `stripBukkit(...)`, `stripSpecial(...)`, `stripRGB(...)`, and `stripAll(...)` remove formatting in different levels
+- `getStartColor(...)` and `getEndColor(...)` inspect the formatted output
 
-dependencies {
-    implementation "me.croabeast:PrismaticAPI:${version}"
-}
+## MiniMessage behavior
+
+MiniMessage support is optional at runtime. If Adventure MiniMessage is available, PrismaticAPI will:
+
+- deserialize standard MiniMessage tags
+- preserve Prismatic gradient/rainbow sections by masking and restoring them safely
+- downsample RGB output to named colors when a legacy target requires it
+
+If MiniMessage is not present, the library still processes Prismatic formats and legacy codes normally.
+
+## Requirements
+
+- Java 8+
+- Bukkit / Spigot / Paper API on the classpath
+- Adventure MiniMessage is optional
+- ViaVersion is optional
+
+## Coordinates
+
+If you publish the artifact to your own repository or consume it from a local build, the coordinates are:
+
+```text
+groupId:    me.croabeast
+artifactId: PrismaticAPI
+version:    1.3.0
 ```
 
----
+## Local development
 
-## ✅ Compatibility Notes
+This project expects the `VNC` project to exist either:
 
-- Java target: `1.8`
-- API base: Spigot `1.16.5` (compile dependency)
-- Legacy fallback: enabled for old clients (and ViaVersion-aware when available)
-- MiniMessage integration: optional at runtime
+- next to this repository as `../VNC`
+- or inside this repository as `VNC`
 
----
+The build automatically compiles the sibling `VNC` jar before compiling PrismaticAPI.
 
-## 🙏 Credits
+## Build
 
-- Original inspiration: [IridiumColorAPI](https://github.com/IridiumLLC/IridiumColorAPI)
-- Maintained and expanded by **CroaBeast**
-
----
-
-## 📄 License
-
-This project is licensed under the **GNU GPL v3**.
-
+```bash
+./gradlew jar
+```
