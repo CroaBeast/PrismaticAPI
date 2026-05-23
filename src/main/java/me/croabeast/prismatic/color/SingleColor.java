@@ -131,11 +131,13 @@ class SingleColor implements ColorPattern {
         @Override
         public @NotNull String apply(String string, boolean legacy) {
             Matcher m = pattern.matcher(string);
+            StringBuffer result = new StringBuffer();
             while (m.find()) {
                 ChatColor c = PrismaticAPI.fromString(m.group(1), legacy);
-                string = string.replace(m.group(), c.toString());
+                m.appendReplacement(result, Matcher.quoteReplacement(c.toString()));
             }
-            return string;
+            m.appendTail(result);
+            return result.toString();
         }
 
         /**
@@ -150,9 +152,7 @@ class SingleColor implements ColorPattern {
         @Override
         public @NotNull String strip(String string) {
             Matcher m = pattern.matcher(string);
-            while (m.find())
-                string = string.replace(m.group(), "");
-            return string;
+            return m.replaceAll("");
         }
     }
 }

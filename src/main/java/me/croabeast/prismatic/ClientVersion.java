@@ -56,8 +56,7 @@ public final class ClientVersion {
         if (m.find())
             try {
                 main = Double.parseDouble(m.group(1));
-            } catch (Exception ignored) {
-            }
+            } catch (Exception ignored) {}
 
         SERVER_VERSION = main;
 
@@ -97,13 +96,16 @@ public final class ClientVersion {
     private static List<Integer> fromInts(Integer... numbers) {
         if (numbers.length != 2)
             return Lists.newArrayList(numbers);
+
         int z = numbers[1], y = numbers[0];
         Integer[] array = new Integer[(z - y) + 1];
+
         int index = 0;
         for (int i = y; i <= z; i++) {
             array[index] = i;
             index++;
         }
+
         return new ArrayList<>(Arrays.asList(array));
     }
 
@@ -118,12 +120,14 @@ public final class ClientVersion {
      */
     private ClientVersion(int version, int start, int end, List<Integer> ignore) {
         this.version = version;
+
         List<Integer> range = fromInts(start, end);
         if (ignore == null || ignore.isEmpty()) {
             protocols = range;
             PROTOCOL_LIST.add(this);
             return;
         }
+
         range.removeIf(ignore::contains);
         protocols = range;
         PROTOCOL_LIST.add(this);
