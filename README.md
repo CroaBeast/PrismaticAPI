@@ -434,7 +434,7 @@ Required Adventure classes at runtime:
 ./gradlew jar
 ```
 
-This project depends on **VNC** (`me.croabeast.vnc:VNC:1.2.0`) from the CroaBeast Maven repository, which is automatically resolved during the build.
+This project depends on **VNC** (`me.croabeast.vnc:VNC:1.2.1`) from the CroaBeast Maven repository, which is automatically resolved during the build.
 
 ---
 
