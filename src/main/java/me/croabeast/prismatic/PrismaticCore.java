@@ -123,7 +123,7 @@ final class PrismaticCore {
     }
 
     private boolean canUseHexColors(@Nullable Player player) {
-        return canUseHexColors() && player != null && playerMinecraftVersion(player).supportsHex();
+        return canUseHexColors() && (player == null || playerMinecraftVersion(player).supportsHex());
     }
 
     private MinecraftVersion playerMinecraftVersion(Player player) {
