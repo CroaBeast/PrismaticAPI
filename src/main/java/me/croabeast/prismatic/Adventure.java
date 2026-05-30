@@ -21,20 +21,31 @@ import java.util.regex.Pattern;
 final class Adventure implements Formatter<Component>, AdventureBridge {
 
     private static final Pattern[] PRISMATIC_BLOCK_PATTERNS = new Pattern[] {
+            // Multi-color gradient: <#RRGGBB:#RRGGBB:...>text</gradient> or </g>
             Pattern.compile("(?is)<#[a-f\\d]{6}(?::#[a-f\\d]{6})+>.+?</g(?:radient)?>"),
+            // g: prefix gradient: <g:RRGGBB>text</g:RRGGBB>
             Pattern.compile("(?is)<g:[a-f\\d]{6}>.+?</g:[a-f\\d]{6}>"),
+            // gradient: prefix gradient: <gradient:RRGGBB>text</gradient:RRGGBB>
             Pattern.compile("(?is)<gradient:[a-f\\d]{6}>.+?</gradient:[a-f\\d]{6}>"),
+            // Single hex pair: <#RRGGBB>text</#RRGGBB>
             Pattern.compile("(?is)<#[a-f\\d]{6}>.+?</#[a-f\\d]{6}>"),
+            // Rainbow: <rainbow:N>text</rainbow> or <r:N>text</r>
             Pattern.compile("(?is)<rainbow:\\d{1,3}>.+?</rainbow>"),
             Pattern.compile("(?is)<r:\\d{1,3}>.+?</r>")
     };
 
     private static final Pattern[] SINGLE_COLOR_PATTERNS = new Pattern[] {
+            // {#RRGGBB} format
             Pattern.compile("(?i)\\{#([a-f\\d]{6})}"),
+            // %#RRGGBB% format
             Pattern.compile("(?i)%#([a-f\\d]{6})%"),
+            // [#RRGGBB] format
             Pattern.compile("(?i)\\[#([a-f\\d]{6})]"),
+            // &xRRGGBB format
             Pattern.compile("(?i)&x([a-f\\d]{6})"),
-            Pattern.compile("(?i)(?<![</])&?#([a-f\\d]{6})")
+            // #RRGGBB or &#RRGGBB - NOT preceded by <, /, or : to avoid corrupting
+            // Prismatic gradient syntax (:#RRGGBB) or MiniMessage tags (<#RRGGBB>)
+            Pattern.compile("(?i)(?<![</:])&?#([a-f\\d]{6})")
     };
 
     private static final Pattern LEGACY_CODE_PATTERN = Pattern.compile("(?i)[&\\u00A7]([0-9a-fk-or])");
@@ -252,12 +263,23 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
     }
 
     private Component colorizeMiniMessageComponent(String string, boolean legacy) {
+        // 1. Mask Prismatic blocks (gradient, rainbow, hex pairs) before any normalization
+        //    so their content is never touched by subsequent steps.
         TokenizedComponents masked = maskPrismaticBlocks(string, legacy);
+
+        // 2. Convert remaining legacy (&a, &c ...) and bare hex (#RRGGBB) to MiniMessage tags.
+        //    The fixed lookbehind in SINGLE_COLOR_PATTERNS prevents corrupting :#RRGGBB inside
+        //    any gradient tag that escaped masking.
         String normalized = normalizeMiniMessage(masked.value);
 
+        // 3. MiniMessage parses its own tags: <green>, <#RRGGBB>, <gradient:#...>, <bold>, etc.
+        //    Default resolvers are active; TagResolver.empty() only means no extra custom tags.
         Component component = MiniMessage.miniMessage().deserialize(normalized, TagResolver.empty());
+
+        // 4. Restore Prismatic-processed tokens (gradient, rainbow, hex pairs).
         component = replaceComponentTokens(component, masked.tokens);
 
+        // 5. Downsample to 16-color palette only for legacy targets (< 1.16 players).
         return legacy ? downsample(component) : component;
     }
 
