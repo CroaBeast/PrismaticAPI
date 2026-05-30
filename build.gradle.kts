@@ -17,7 +17,7 @@ val embedded by configurations.creating {
 
 repositories {
     mavenCentral()
-    mavenLocal()
+
     maven("https://croabeast.github.io/repo/")
 
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
