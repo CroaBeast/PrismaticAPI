@@ -56,9 +56,10 @@ final class PrismaticCore {
     }
 
     String stripRGB(String string) {
-        return StringUtils.isBlank(string) ?
-                string :
-                ColorPattern.SINGLE.strip(ColorPattern.MULTI.strip(string));
+        if (StringUtils.isBlank(string)) return string;
+
+        String multi = string.indexOf('<') < 0 ? string : ColorPattern.MULTI.strip(string);
+        return needsSingleColor(multi) ? ColorPattern.SINGLE.strip(multi) : multi;
     }
 
     String stripMiniMessage(String string) {
@@ -107,10 +108,26 @@ final class PrismaticCore {
     }
 
     String applyLegacyPipeline(String string, boolean legacy) {
-        return ChatColor.translateAlternateColorCodes('&', applyRgbPipeline(string, legacy));
+        String rgb = applyRgbPipeline(string, legacy);
+        return rgb.indexOf('&') < 0 ? rgb : ChatColor.translateAlternateColorCodes('&', rgb);
     }
 
     private String applyRgbPipeline(String string, boolean legacy) {
-        return ColorPattern.SINGLE.apply(ColorPattern.MULTI.apply(string, legacy), legacy);
+        String multi = string.indexOf('<') < 0 ? string : ColorPattern.MULTI.apply(string, legacy);
+        return needsSingleColor(multi) ? ColorPattern.SINGLE.apply(multi, legacy) : multi;
+    }
+
+    /**
+     * Every {@code SingleColor} pattern needs either a literal {@code '#'} or a {@code "&x"} prefix,
+     * so a single character scan decides whether the six regex passes are worth running.
+     */
+    private static boolean needsSingleColor(String string) {
+        for (int i = 0, size = string.length(); i < size; i++) {
+            char c = string.charAt(i);
+            if (c == '#') return true;
+            if (c == '&' && i + 1 < size && (string.charAt(i + 1) | 0x20) == 'x') return true;
+        }
+
+        return false;
     }
 }
