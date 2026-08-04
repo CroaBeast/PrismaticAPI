@@ -58,8 +58,8 @@ public final class RenderContext {
     /**
      * Creates a context for a player with a placeholder resolver.
      *
-     * <p>The resolver receives the token without its delimiters, so {@code {player}} arrives as
-     * {@code "player"} and {@code %vault_eco_balance%} as {@code "vault_eco_balance"}. Returning
+     * <p>The resolver receives the token with its delimiters, so it sees {@code {player}} and
+     * {@code %vault_eco_balance%} verbatim and can tell the two syntaxes apart. Returning
      * {@code null} leaves the original token in place.
      *
      * @param player   receiving player, or {@code null} for the server default
@@ -109,17 +109,16 @@ public final class RenderContext {
     }
 
     /**
-     * Resolves a placeholder name.
+     * Resolves a placeholder token.
      *
-     * @param name    token name without delimiters
-     * @param literal original token, returned when the resolver declines
+     * @param literal the token with its delimiters, returned when the resolver declines
      * @return the replacement value
      */
     @NotNull
-    String resolve(String name, String literal) {
+    String resolve(String literal) {
         if (resolver == null) return literal;
 
-        String value = resolver.apply(name);
+        String value = resolver.apply(literal);
         return value != null ? value : literal;
     }
 

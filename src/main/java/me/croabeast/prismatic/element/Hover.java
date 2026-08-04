@@ -90,6 +90,23 @@ public final class Hover {
     }
 
     /**
+     * Returns the hover lines with their placeholders resolved against a render.
+     *
+     * <p>Hover text carries placeholders like any other text, so the tokens are split once and
+     * resolved here rather than scanned again per receiver.
+     */
+    @NotNull
+    List<String> resolveLines(RenderContext context) {
+        List<String> source = getLines();
+        List<String> resolved = new ArrayList<>(source.size());
+
+        for (String line : source)
+            resolved.add(Part.resolve(Part.split(line), context));
+
+        return resolved;
+    }
+
+    /**
      * Returns the item payload in its {@code "b64:<base64>"} transport form.
      *
      * @return encoded payload, or {@code null} for a text hover

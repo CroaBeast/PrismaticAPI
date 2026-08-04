@@ -58,7 +58,7 @@ public class AdventureElement {
             Component child = PrismaticAPI.adventure().colorize(context.getPlayer(), text);
 
             if (segment.click != null)
-                child = child.clickEvent(ClickEvent.clickEvent(action(segment.click), clickValue(segment)));
+                child = child.clickEvent(ClickEvent.clickEvent(action(segment.click), Part.resolve(segment.clickParts, context)));
 
             if (segment.hover != null)
                 child = child.hoverEvent(hover(segment.hover, context));
@@ -69,15 +69,12 @@ public class AdventureElement {
         return result;
     }
 
-    private String clickValue(Segment segment) {
-        return segment.clickValue == null ? "" : segment.clickValue;
-    }
 
     private HoverEvent<?> hover(Hover hover, RenderContext context) {
         if (hover.isItem())
             return HoverEvent.showText(Component.text(String.valueOf(hover.getItemJson())));
 
-        List<String> lines = hover.getLines();
+        List<String> lines = hover.resolveLines(context);
         Component content = Component.empty();
 
         for (int i = 0; i < lines.size(); i++) {

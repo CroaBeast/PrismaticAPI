@@ -15,6 +15,7 @@ final class Segment {
     final Part[] parts;
     final Click click;
     final String clickValue;
+    final Part[] clickParts;
     final Hover hover;
 
     private final boolean dynamic;
@@ -25,6 +26,7 @@ final class Segment {
         this.parts = Part.split(this.raw);
         this.click = click;
         this.clickValue = clickValue;
+        this.clickParts = Part.split(clickValue == null ? "" : clickValue);
         this.hover = hover;
 
         boolean dynamic = false;
@@ -82,7 +84,7 @@ final class Segment {
 
         StringBuilder builder = new StringBuilder(raw.length() + 16);
         for (Part part : parts)
-            builder.append(part.placeholder ? context.resolve(part.value, part.literal) : part.value);
+            builder.append(part.placeholder ? context.resolve(part.literal) : part.value);
 
         return builder.toString();
     }

@@ -26,6 +26,22 @@ final class Part {
     final boolean placeholder;
     final String literal;
 
+    /**
+     * Resolves a split value against a render.
+     *
+     * <p>Click payloads and hover lines carry placeholders just like the visible text does, so they
+     * are split once and resolved here instead of being scanned again at render time.
+     */
+    static String resolve(Part[] parts, RenderContext context) {
+        if (parts.length == 1 && !parts[0].placeholder) return parts[0].value;
+
+        StringBuilder builder = new StringBuilder(16);
+        for (Part part : parts)
+            builder.append(part.placeholder ? context.resolve(part.literal) : part.value);
+
+        return builder.toString();
+    }
+
     static Part[] split(String raw) {
         if (raw == null || raw.isEmpty())
             return new Part[] {new Part("", false, "")};

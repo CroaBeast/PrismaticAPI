@@ -43,7 +43,7 @@ class BungeeRenderer {
     }
 
     private String value(Segment segment, RenderContext context) {
-        return context.colorize(segment.clickValue == null ? "" : segment.clickValue);
+        return context.colorize(Part.resolve(segment.clickParts, context));
     }
 
     @SuppressWarnings("deprecation")
@@ -54,7 +54,7 @@ class BungeeRenderer {
                     new ComponentBuilder(hover.getItemJson()).create()
             );
 
-        List<String> lines = hover.getLines();
+        List<String> lines = hover.resolveLines(context);
         BaseComponent[] contents = new BaseComponent[lines.size()];
 
         for (int i = 0; i < lines.size(); i++) {
