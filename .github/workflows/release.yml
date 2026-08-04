@@ -32,30 +32,44 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
-      - name: Download build artifact
+      - name: Checkout VNC dependency
+        uses: actions/checkout@v4
+        with:
+          repository: CroaBeast/VNC
+          path: VNC
+          ref: 7759b4a5df298de36570f887218dcb6db790edc3
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build release jar
         shell: bash
         run: |
-          gh run download "${{ github.event.workflow_run.id }}" \
-            --repo "$GITHUB_REPOSITORY" \
-            --dir release-assets
+          set -euo pipefail
+          chmod +x ./gradlew VNC/gradlew
+          ./gradlew --no-daemon clean jar sourcesJar javadocJar
 
-          mapfile -t JARS < <(find release-assets -type f -name "${PROJECT_NAME}-*.jar" ! -name "*-sources.jar" ! -name "*-javadoc.jar" ! -name "*-all.jar" | sort)
-          RELEASE_JAR="${JARS[0]:-}"
+          VERSION=$(./gradlew --no-daemon -q properties --property version | awk -F': ' '$1 == "version" { print $2; exit }')
+          JAR_SOURCE=$(find . -type f -path "*/build/libs/${PROJECT_NAME}-${VERSION}.jar" -print -quit)
 
-          if [ -z "$RELEASE_JAR" ] || [ ! -f "$RELEASE_JAR" ]; then
-            echo "Could not find ${PROJECT_NAME} jar in downloaded artifacts."
-            find release-assets -type f -print
+          if [ -z "$JAR_SOURCE" ]; then
+            echo "Could not find final ${PROJECT_NAME} jar in build outputs."
+            find . -path "*/build/libs/*.jar" -type f -print
             exit 1
           fi
 
-          BASENAME=$(basename "$RELEASE_JAR" .jar)
-          PREFIX="${PROJECT_NAME}-"
-          VERSION="${BASENAME#$PREFIX}"
+          mkdir -p release-assets
+          RELEASE_JAR="release-assets/${PROJECT_NAME}-${VERSION}.jar"
+          cp "$JAR_SOURCE" "$RELEASE_JAR"
 
           echo "RELEASE_JAR=$RELEASE_JAR" >> "$GITHUB_ENV"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "TAG=$VERSION" >> "$GITHUB_ENV"
-
       - name: Generate release notes
         shell: bash
         run: |

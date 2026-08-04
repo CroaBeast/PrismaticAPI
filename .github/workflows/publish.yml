@@ -55,16 +55,6 @@ jobs:
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Upload PrismaticAPI artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: PrismaticAPI-artifacts-${{ env.VERSION }}
-          if-no-files-found: error
-          path: |
-            build/libs/${{ env.PROJECT_NAME }}-${{ env.VERSION }}.jar
-            build/libs/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-sources.jar
-            build/libs/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-javadoc.jar
-
       - name: Checkout Maven repository
         if: github.event_name != 'pull_request'
         uses: actions/checkout@v4
