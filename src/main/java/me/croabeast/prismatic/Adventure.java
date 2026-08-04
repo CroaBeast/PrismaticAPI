@@ -1,5 +1,7 @@
 package me.croabeast.prismatic;
 
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -18,6 +20,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 final class Adventure implements Formatter<Component>, AdventureBridge {
 
     private static final Pattern[] PRISMATIC_BLOCK_PATTERNS = new Pattern[] {
@@ -50,11 +53,10 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
 
     private static final Pattern LEGACY_CODE_PATTERN = Pattern.compile("(?i)[&\\u00A7]([0-9a-fk-or])");
 
-    private final PrismaticCore core;
+    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
+    private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
 
-    Adventure(PrismaticCore core) {
-        this.core = core;
-    }
+    private final PrismaticCore core;
 
     @Override
     public ChatColor fromString(String string, boolean legacy) {
@@ -100,7 +102,7 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
 
     @Override
     public String stripMiniMessage(String string) {
-        return StringUtils.isBlank(string) ? string : MiniMessage.miniMessage().stripTags(string);
+        return StringUtils.isBlank(string) ? string : MINI_MESSAGE.stripTags(string);
     }
 
     @Override
@@ -274,7 +276,7 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
 
         // 3. MiniMessage parses its own tags: <green>, <#RRGGBB>, <gradient:#...>, <bold>, etc.
         //    Default resolvers are active; TagResolver.empty() only means no extra custom tags.
-        Component component = MiniMessage.miniMessage().deserialize(normalized, TagResolver.empty());
+        Component component = MINI_MESSAGE.deserialize(normalized, TagResolver.empty());
 
         // 4. Restore Prismatic-processed tokens (gradient, rainbow, hex pairs).
         component = replaceComponentTokens(component, masked.tokens);
@@ -293,7 +295,7 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
     }
 
     private LegacyComponentSerializer legacySerializer() {
-        return LegacyComponentSerializer.legacySection();
+        return LEGACY_SERIALIZER;
     }
 
     @FunctionalInterface

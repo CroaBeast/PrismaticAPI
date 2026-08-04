@@ -1,18 +1,17 @@
 package me.croabeast.prismatic;
 
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
 
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 final class LegacyFormatter implements Formatter<String> {
 
     private final PrismaticCore core;
-
-    LegacyFormatter(PrismaticCore core) {
-        this.core = core;
-    }
 
     @Override
     public ChatColor fromString(String string, boolean legacy) {
