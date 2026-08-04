@@ -1,8 +1,6 @@
 package me.croabeast.prismatic;
 
 import lombok.experimental.UtilityClass;
-import me.croabeast.prismatic.chat.ChatComponent;
-import me.croabeast.prismatic.chat.MultiComponent;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
@@ -74,34 +72,6 @@ public class PrismaticAPI {
      */
     public boolean isAdventureAvailable() {
         return AdventureAccess.isAvailable();
-    }
-
-    /**
-     * Creates a mutable interactive chat component.
-     *
-     * <p>The component compiles to Bungee/Spigot {@link net.md_5.bungee.api.chat.BaseComponent}
-     * output and uses the Prismatic legacy formatter by default.
-     *
-     * @param message raw message
-     * @return new chat component
-     * @since 1.5.0
-     */
-    public ChatComponent<?> chatComponent(String message) {
-        return ChatComponent.fromString(message);
-    }
-
-    /**
-     * Creates a mutable multi-component that can parse click and hover markup.
-     *
-     * <p>The supported markup is {@code <action:"argument">text</text>} or
-     * {@code <action:"argument"|action:"argument">text</text>}.
-     *
-     * @param message raw or formatted message
-     * @return new multi-component
-     * @since 1.5.0
-     */
-    public MultiComponent multiComponent(String message) {
-        return MultiComponent.fromString(message);
     }
 
     /**
