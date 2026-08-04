@@ -105,6 +105,56 @@ public class PrismaticAPI {
     }
 
     /**
+     * Returns whether a player can receive exact RGB colors.
+     *
+     * <p>The result is resolved once per player and reused, so this is cheap enough to call per
+     * rendered line.
+     *
+     * @param player player to inspect, or {@code null} to ask about the server default
+     * @return {@code true} when hex colors survive to the client
+     * @since 2.0.0
+     */
+    public boolean supportsHexColors(@Nullable Player player) {
+        return Capabilities.supportsHex(player);
+    }
+
+    /**
+     * Drops the cached color capabilities of a player.
+     *
+     * <p>The protocol reported by a connected player cannot change during a session, so Prismatic
+     * resolves it once and reuses the result for every formatted line. Call this from a
+     * {@code PlayerQuitEvent} handler so the entry does not survive the session.
+     *
+     * @param uuid unique id of the player to forget; ignored when {@code null}
+     * @since 2.0.0
+     */
+    public void forgetPlayer(@Nullable java.util.UUID uuid) {
+        Capabilities.forget(uuid);
+    }
+
+    /**
+     * Drops the cached color capabilities of a player.
+     *
+     * @param player player to forget; ignored when {@code null}
+     * @since 2.0.0
+     * @see #forgetPlayer(java.util.UUID)
+     */
+    public void forgetPlayer(@Nullable Player player) {
+        if (player != null) Capabilities.forget(player.getUniqueId());
+    }
+
+    /**
+     * Drops every cached player capability.
+     *
+     * <p>Useful on reload, or when a proxy changes the protocol of already connected players.
+     *
+     * @since 2.0.0
+     */
+    public void clearPlayerCache() {
+        Capabilities.clear();
+    }
+
+    /**
      * Converts a bare six-digit hexadecimal RGB value into a {@link ChatColor}.
      *
      * <p>When {@code legacy} is {@code false}, the returned color preserves the exact RGB value.

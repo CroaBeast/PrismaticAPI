@@ -1,12 +1,8 @@
 package me.croabeast.prismatic;
 
-import com.viaversion.viaversion.api.Via;
 import me.croabeast.prismatic.color.ColorPattern;
-import me.croabeast.vnc.MinecraftVersion;
-import me.croabeast.vnc.VNC;
 import net.md_5.bungee.api.ChatColor;
 import org.apache.commons.lang.StringUtils;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
@@ -107,7 +103,7 @@ final class PrismaticCore {
     }
 
     boolean shouldUseLegacyColors(@Nullable Player player) {
-        return !canUseHexColors(player);
+        return !Capabilities.supportsHex(player);
     }
 
     String applyLegacyPipeline(String string, boolean legacy) {
@@ -116,37 +112,5 @@ final class PrismaticCore {
 
     private String applyRgbPipeline(String string, boolean legacy) {
         return ColorPattern.SINGLE.apply(ColorPattern.MULTI.apply(string, legacy), legacy);
-    }
-
-    private boolean canUseHexColors() {
-        return VNC.SERVER_MINECRAFT_VERSION != null && VNC.SERVER_MINECRAFT_VERSION.supportsHex();
-    }
-
-    private boolean canUseHexColors(@Nullable Player player) {
-        return canUseHexColors() && (player == null || playerMinecraftVersion(player).supportsHex());
-    }
-
-    private MinecraftVersion playerMinecraftVersion(Player player) {
-        int protocol = playerProtocol(player);
-        MinecraftVersion version = MinecraftVersion.fromProtocol(protocol);
-        return version != null ? version : VNC.SERVER_MINECRAFT_VERSION;
-    }
-
-    private int playerProtocol(Player player) {
-        return Bukkit.getPluginManager().isPluginEnabled("ViaVersion") ? viaPlayerProtocol(player) : serverProtocol();
-    }
-
-    private int viaPlayerProtocol(Player player) {
-        try {
-            return Via.getAPI().getPlayerVersion(player.getUniqueId());
-        } catch (Throwable ignored) {}
-
-        return serverProtocol();
-    }
-
-    private int serverProtocol() {
-        return VNC.SERVER_MINECRAFT_VERSION != null &&
-                VNC.SERVER_MINECRAFT_VERSION.getProtocol() != null ?
-                VNC.SERVER_MINECRAFT_VERSION.getProtocol() : -1;
     }
 }
