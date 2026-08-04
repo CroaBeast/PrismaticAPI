@@ -4,7 +4,7 @@
 
 **The ultimate text-formatting engine for Bukkit/Paper plugins.**
 
-RGB colors · Gradients · Rainbows · MiniMessage · Interactive Chat Components
+RGB colors · Gradients · Rainbows · MiniMessage · Interactive Messages
 
 [![Version](https://img.shields.io/badge/version-1.5.0-blueviolet?style=flat-square)](https://github.com/CroaBeast/PrismaticAPI)
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.16.5+-green?style=flat-square)](https://spigotmc.org)
@@ -27,7 +27,7 @@ PrismaticAPI is a Bukkit/Paper text-formatting library that gives your plugin **
 - 🌈 **Gradient & Rainbow tags** — color transitions per character, across as many color stops as you want
 - 💬 **MiniMessage integration** — mix Prismatic tags and MiniMessage tags in the same string (optional at runtime)
 - 🔮 **Adventure support** — produce `net.kyori.adventure.text.Component` output from the same pipeline, fully optional
-- 🕹️ **Interactive components** — click events, hover text, hover items, URL auto-detection
+- 🕹️ **Interactive messages** — `Element`: parsed once, click events, hover text, hover items, placeholders, URL auto-detection
 - 🧠 **Player-aware formatting** — VNC + ViaVersion integration to serve hex or legacy output depending on the player's Minecraft version
 - 🛡️ **Safe by design** — Adventure is never required; the library boots cleanly even when it's absent
 - ⚡ **Backwards compatible** — the classic `PrismaticAPI.colorize(...)` methods still work unchanged
@@ -151,134 +151,134 @@ if (PrismaticAPI.isAdventureAvailable()) {
 }
 ```
 
-### 🖱️ Interactive chat components
+### 🖱️ Interactive messages
 
-**Single component** — one piece of text with click + hover:
-
-```java
-BaseComponent[] msg = PrismaticAPI
-        .chatComponent("<#ff8800>Click me!")
-        .setClick("run", "/help")
-        .setHover("&eOpen help menu<n>&7Uses Prismatic colors")
-        .compile(player);
-
-player.spigot().sendMessage(msg);
-```
-
-**Multi-component** — parse several interactive segments from markup:
+`Element` is the single message type. Parse once, render per player:
 
 ```java
 // Markup format: <action:"argument">text</text>
-BaseComponent[] msg = PrismaticAPI
-        .multiComponent(
-            "<run:\"/spawn\">&aGo to Spawn</text>" +
-            " &7| " +
-            "<suggest:\"/msg \">&bSend a Message</text>"
-        )
-        .compile(player);
+Element menu = Element.parse(
+        "<run:\"/spawn\">&aGo to Spawn</text>" +
+        " &7| " +
+        "<suggest:\"/msg \">&bSend a Message</text>"
+);
 
-player.spigot().sendMessage(msg);
+player.spigot().sendMessage(menu.bungee(player));
+player.sendMessage(menu.legacy(player));
+```
+
+Build one by hand:
+
+```java
+Element button = Element.text("Click me!")
+        .toBuilder()
+        .color("#ff8800")
+        .click("run", "/help")
+        .hover("&eOpen help menu", "&7Uses Prismatic colors")
+        .build();
+
+player.spigot().sendMessage(button.bungee(player));
 ```
 
 **Supported click actions in markup:** `execute` / `click` / `run` / `suggest` / `url` / `file` / `page` / `copy`
 
 ---
 
-## 🕹️ Chat Components In Depth
+## 🕹️ `Element` In Depth
 
-PrismaticAPI offers two types of interactive chat components, both compiled to `BaseComponent[]` for Spigot/Bungee's `player.spigot().sendMessage(...)`.
+`Element` is the single message type. It is **immutable and parsed once**: the interactive markup, the bare URLs and the placeholder tokens are located at parse time, and every later render reuses that work. Keep one instance per config entry and hand it to every player.
+
+```java
+Element line = Element.parse("<g:ff8800>Welcome</g:00ffaa> &7{player}");
+
+player.sendMessage(line.legacy(player));                 // legacy String
+player.spigot().sendMessage(line.bungee(player));        // BaseComponent[]
+```
+
+Adventure output lives in a separate class on purpose, so a server without the Adventure runtime never loads a Kyori class by touching an element:
+
+```java
+if (PrismaticAPI.isAdventureAvailable()) {
+    Component c = AdventureElement.render(line, player);
+}
+```
 
 ---
 
-### 📌 `ChatComponent` — single interactive segment
+### 🏗️ Building
 
-A `ChatComponent` wraps one raw message and lets you attach a **click event**, a **text hover** or an **item hover** to it.
+Mutation goes through `Element.Builder`, so a shared instance can never change underneath another consumer. Style and event calls apply to the **last appended segment**.
 
 ```java
-ChatComponent<?> comp = PrismaticAPI.chatComponent("<#ff8800>Hello!");
+Element button = Element.builder()
+        .append("Spawn")
+        .color("#00ffaa")
+        .bold()
+        .click(Click.RUN_COMMAND, "/spawn")
+        .hover("&7Go to spawn", "&8/spawn")
+        .build();
 
-// attach events
-comp.setClick(ChatComponent.Click.EXECUTE, "/spawn");
-comp.setHover("&eTeleport to spawn\n&7Click to confirm");
-
-// compile and send
-player.spigot().sendMessage(comp.compile(player));
+// derive from an existing element without touching it
+Element louder = button.toBuilder().append(" &c!").build();
 ```
 
-#### 🖱️ Click events
+| Builder method | What it does |
+|----------------|--------------|
+| `append(String)` | Adds literal text as a new segment |
+| `appendMarkup(String)` | Parses interactive markup and adds the segments |
+| `append(Element)` | Adds the segments of another element |
+| `raw(String)` | Replaces the text of the last segment, keeping its events |
+| `color` / `bold` / `italic` / `underlined` / `strikethrough` | Styles the last segment |
+| `click` / `hover` / `hoverItem` | Attaches events to the last segment |
+| `clickAll` / `hoverAll` | Applies an event to every segment |
+| `clearClick` / `clearHover` | Removes an event from the last segment |
+| `autoLinkUrl()` | Gives the last segment an `OPEN_URL` click from the first URL in its text |
 
-The `Click` enum lists every supported action. Each constant also accepts short string aliases via `setClick(String, String)`:
+---
+
+### 🖱️ Click events
+
+The `Click` enum carries no platform type: the mapping to Bungee or Adventure happens inside the matching renderer.
 
 | Constant | String aliases | What it does |
 |----------|---------------|--------------|
-| `EXECUTE` | `execute`, `click`, `run`, `run_command` | Runs a command as the player |
+| `RUN_COMMAND` | `execute`, `click`, `run`, `run_command` | Runs a command as the player |
 | `OPEN_URL` | `open_url`, `url` | Opens a URL in the browser |
 | `OPEN_FILE` | `open_file`, `file` | Opens a file on the client machine |
-| `SUGGEST` | `suggest`, `suggest_command` | Inserts text into chat without sending |
+| `SUGGEST_COMMAND` | `suggest`, `suggest_command` | Inserts text into chat without sending |
 | `CHANGE_PAGE` | `change_page`, `page` | Flips a book page |
-| `CLIPBOARD` | `clipboard`, `copy`, `copy_to_clipboard` | Copies text to clipboard |
+| `COPY_TO_CLIPBOARD` | `clipboard`, `copy`, `copy_to_clipboard` | Copies text to clipboard |
 
 ```java
-// using the enum constant
-comp.setClick(ChatComponent.Click.OPEN_URL, "https://example.com");
-
-// using a string alias
-comp.setClick("url", "https://example.com");
-
-// compact "action:payload" shorthand
-comp.setClick("run:/spawn");
+builder.click(Click.OPEN_URL, "https://example.com");  // enum constant
+builder.click("url", "https://example.com");           // string alias
+builder.click("run:/spawn");                           // compact "action:payload"
 ```
 
-#### 💬 Text hover
-
-Hover text can be supplied as a `List<String>`, a vararg array or a single string. Lines are separated with `<n>` inside a single string:
-
-```java
-// list of lines
-comp.setHover(List.of("&eLine one", "&7Line two"));
-
-// varargs
-comp.setHover("&eLine one", "&7Line two");
-
-// single string with <n> separator
-comp.setHover("&eLine one<n>&7Line two");
-```
-
-Prismatic color codes are applied to hover text at compile time using the same player-aware pipeline.
-
-#### 📦 Item hover
-
-Pass a raw SNBT/NBT JSON string, or a Base64-encoded payload prefixed with `b64:` to avoid escaping issues:
-
-```java
-// raw JSON
-comp.setHoverItem("{id:\"minecraft:diamond_sword\",Count:1b}");
-
-// base64-encoded (recommended for complex NBT)
-comp.setHoverItem("b64:" + Base64.getEncoder().encodeToString(nbtJson.getBytes()));
-```
-
-#### 🔗 URL auto-detection
-
-If the raw message contains a URL (starting with `http://`, `https://` or `www.`), an `OPEN_URL` click event is **attached automatically** during `compile()` — no need to call `setClick` manually.
+An unknown or blank alias resolves to `SUGGEST_COMMAND`.
 
 ---
 
-### 📋 `MultiComponent` — composite interactive message
+### 💬 Hover
 
-A `MultiComponent` parses a raw string into multiple segments, each of which can carry independent events. Segments without markup are treated as plain text; URLs in plain segments get auto-linked.
+Text hover accepts varargs, a `List<String>`, or a single string using the `<n>` separator:
 
 ```java
-MultiComponent multi = PrismaticAPI.multiComponent(
-    "<run:\"/spawn\">&aGo to Spawn</text>" +
-    " &7| " +
-    "<suggest:\"/msg \">&bMessage a player</text>"
-);
-
-player.spigot().sendMessage(multi.compile(player));
+builder.hover("&eLine one", "&7Line two");
+builder.hover(Arrays.asList("&eLine one", "&7Line two"));
+builder.hover("&eLine one<n>&7Line two");
 ```
 
-#### 🏷️ Default markup format
+Item hover takes raw SNBT/NBT JSON, or a Base64 payload prefixed with `b64:` to avoid escaping issues:
+
+```java
+builder.hoverItem("{id:\"minecraft:diamond_sword\",Count:1b}");
+builder.hoverItem("b64:" + Base64.getUrlEncoder().withoutPadding().encodeToString(nbt.getBytes(UTF_8)));
+```
+
+---
+
+### 🏷️ Markup format
 
 ```
 <action:"argument">visible text</text>
@@ -287,7 +287,7 @@ player.spigot().sendMessage(multi.compile(player));
 
 - The **opening tag** holds one or two `action:"argument"` pairs separated by `|`.
 - The **closing tag** is always `</text>`.
-- Supported actions inside the tag: all click aliases from the table above, plus `hover` and `hover_item`.
+- Supported actions: every click alias from the table above, plus `hover` and `hover_item`.
 
 ```
 <!-- click only -->
@@ -301,39 +301,60 @@ player.spigot().sendMessage(multi.compile(player));
 
 <!-- click + hover (pipe-separated) -->
 <run:"/spawn"|hover:"&eTeleport home">Go Home</text>
-
-<!-- suggest + hover_item -->
-<suggest:"/give "|hover_item:"b64:eyJpZCI6Imdia...">Give item</text>
 ```
 
-#### 🔀 Multi-stop actions and methods
-
-Beyond markup, you can also apply events programmatically after construction:
+Utilities around the markup:
 
 ```java
-MultiComponent multi = PrismaticAPI.multiComponent("Hello </text>World</text>");
-
-// affects only the LAST segment
-multi.setClick("run", "/last");
-multi.setHover("Hover on last");
-
-// affects ALL segments at once
-multi.setClickToAll("run", "/all");
-multi.setHoverToAll("Same hover on every segment");
-multi.setHoverItemToAll("{id:\"minecraft:apple\",Count:1b}");
-
-// append more text or components
-multi.append(" &7— extra text");
-multi.append(PrismaticAPI.chatComponent("&cAnother segment").setClick("url", "https://example.com"));
-
-// deep copy
-MultiComponent copy = multi.copy();
-
-// serialize back to markup string
-String markup = multi.toFormattedString();
+Element.isMarkup(raw);          // does the text contain interactive tags?
+Element.stripMarkup(raw);       // drop the tags, keep the visible text
+element.toMarkup();             // serialize back; re-parses to an equivalent element
 ```
 
-#### 🎨 Color continuity
+#### Custom formats
+
+`MarkupFormat` is the parsing strategy. Note that `accept` takes no player: parsing happens once and cannot depend on who receives the message.
+
+```java
+Element parsed = Element.parse(raw, myFormat);
+```
+
+---
+
+### 🧩 Placeholders
+
+Tokens shaped `{name}` and `%name%` survive parsing as data and are resolved at render time. This is what lets a gradient span the **resolved value** instead of the length of the token:
+
+```java
+Element line = Element.parse("<g:ff0000>Hello {player}</g:00ff00>");
+
+RenderContext ctx = RenderContext.of(player, name ->
+        "player".equals(name) ? player.getName() : null);
+
+player.sendMessage(line.legacy(ctx));
+```
+
+A resolver returning `null` leaves the original token in place. Tokens starting with `#` are Prismatic color syntax, not placeholders, so `{#ff8800}` and `%#ff8800%` are never touched.
+
+---
+
+### ⚡ Render cache
+
+There are only two color profiles, `Target.HEX` and `Target.LEGACY`, so each segment caches its colorized text in two slots. An element rendered to a hundred players pays the color pipeline twice.
+
+The cache is skipped when a render actually resolves placeholders, or when a custom formatter is supplied via `RenderContext.withFormatter(...)`.
+
+`toString()` returns the **raw** text and never renders — it is called by string concatenation, logging and debuggers, none of which should trigger a render or need a player.
+
+---
+
+### 🔗 URL auto-detection
+
+`Element.parse` turns any bare URL (`http://`, `https://` or `www.`) in a non-markup span into its own segment with an `OPEN_URL` click. On a builder, call `autoLinkUrl()` explicitly. An explicit click always wins.
+
+---
+
+### 🎨 Color continuity
 
 When a segment does not begin with an explicit color code, the **last color of the previous segment** is prepended automatically. This prevents unexpected white resets between segments:
 
@@ -425,6 +446,42 @@ Required Adventure classes at runtime:
 | `applyColorText(...)` | `PrismaticAPI.adventure().applyColor(...)` |
 | `applyGradientText(...)` | `PrismaticAPI.adventure().applyGradient(...)` |
 | `applyRainbowText(...)` | `PrismaticAPI.adventure().applyRainbow(...)` |
+
+---
+
+## 🔄 Migration from 1.5.x
+
+The `me.croabeast.prismatic.chat` package is gone. `Element` replaces all of it.
+
+| Old API | New API |
+|---------|---------|
+| `PrismaticAPI.chatComponent(raw)` | `Element.text(raw).toBuilder()` |
+| `PrismaticAPI.multiComponent(raw)` | `Element.parse(raw)` |
+| `ChatComponent` / `MultiComponent` | `Element` (one type; a single segment is not a special case) |
+| `component.compile(player)` | `element.bungee(player)` |
+| `component.setMessage(raw)` | `builder.raw(raw)` |
+| `component.setClick(Click.EXECUTE, v)` | `builder.click(Click.RUN_COMMAND, v)` |
+| `component.setHover(...)` | `builder.hover(...)` |
+| `component.setHoverItem(json)` | `builder.hoverItem(json)` |
+| `multi.setClickToAll(...)` | `builder.clickAll(...)` |
+| `multi.setHoverToAll(...)` | `builder.hoverAll(...)` |
+| `multi.append(raw)` | `builder.appendMarkup(raw)` |
+| `multi.copy()` | Not needed; `Element` is immutable |
+| `multi.toFormattedString()` | `element.toMarkup()` |
+| `ChatFormat` | `MarkupFormat` (no `Player` parameter) |
+| `DEFAULT_FORMAT.removeFormat(raw)` | `Element.stripMarkup(raw)` |
+| `DEFAULT_FORMAT.isFormatted(raw)` | `Element.isMarkup(raw)` |
+| `ChatComponent.URL_PATTERN` | `Element.URL_PATTERN` |
+| `ChatProcessor.colorize` | `RenderContext.withFormatter(...)` |
+| `ChatProcessor.prepare` | `MarkupFormat.prepare(...)` |
+| `ChatComponent.Click.EXECUTE` | `Click.RUN_COMMAND` (string aliases unchanged) |
+| `ChatComponent.Click.SUGGEST` | `Click.SUGGEST_COMMAND` |
+| `ChatComponent.Click.CLIPBOARD` | `Click.COPY_TO_CLIPBOARD` |
+
+Two behaviour changes worth knowing:
+
+- **Mutation.** The old components mutated in place; `Element` is immutable. `element.toBuilder()...build()` returns a new instance, and the original is untouched.
+- **Empty messages.** `compile()` documented a non-empty array and padded an empty message with a blank component. `Element.text("").bungee()` returns an empty array.
 
 ---
 

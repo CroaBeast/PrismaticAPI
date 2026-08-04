@@ -56,6 +56,12 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
 
+    private static final LegacyComponentSerializer HEX_SERIALIZER = LegacyComponentSerializer.builder()
+            .character(LegacyComponentSerializer.SECTION_CHAR)
+            .hexColors()
+            .useUnusualXRepeatedCharacterHexFormat()
+            .build();
+
     private final PrismaticCore core;
 
     @Override
@@ -65,17 +71,17 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
 
     @Override
     public Component applyColor(Color color, String string, boolean legacy) {
-        return deserialize(core.applyColor(color, string, legacy));
+        return deserialize(core.applyColor(color, string, legacy), legacy);
     }
 
     @Override
     public Component applyGradient(String string, Color start, Color end, boolean legacy) {
-        return deserialize(core.applyGradient(string, start, end, legacy));
+        return deserialize(core.applyGradient(string, start, end, legacy), legacy);
     }
 
     @Override
     public Component applyRainbow(String string, float saturation, boolean legacy) {
-        return deserialize(core.applyRainbow(string, saturation, legacy));
+        return deserialize(core.applyRainbow(string, saturation, legacy), legacy);
     }
 
     @Override
@@ -130,7 +136,7 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
         return StringUtils.isBlank(string) ? string == null ? "" : string :
                 string.indexOf('<') == -1 ?
                         core.applyLegacyPipeline(string, legacy) :
-                        serialize(colorizeComponent(string, legacy));
+                        serialize(colorizeComponent(string, legacy), legacy);
     }
 
     private TokenizedComponents maskPrismaticBlocks(String string, boolean legacy) {
@@ -211,7 +217,7 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
         while (matcher.find()) {
             String token = token(tokens.size());
             String legacyValue = core.applyLegacyPipeline(matcher.group(), legacy);
-            tokens.add(new Token<>(token, deserialize(legacyValue)));
+            tokens.add(new Token<>(token, deserialize(legacyValue, legacy)));
             matcher.appendReplacement(result, Matcher.quoteReplacement(token));
         }
         matcher.appendTail(result);
@@ -260,7 +266,7 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
 
     private Component colorizeComponent(String string, boolean legacy) {
         return string.indexOf('<') == -1 ?
-                deserialize(core.applyLegacyPipeline(string, legacy)) :
+                deserialize(core.applyLegacyPipeline(string, legacy), legacy) :
                 colorizeMiniMessageComponent(string, legacy);
     }
 
@@ -285,17 +291,22 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
         return legacy ? downsample(component) : component;
     }
 
-    private Component deserialize(String legacy) {
-        String safe = legacy == null ? "" : legacy;
-        return legacySerializer().deserialize(safe);
+    private Component deserialize(String value, boolean legacy) {
+        return serializer(legacy).deserialize(value == null ? "" : value);
     }
 
-    private String serialize(Component component) {
-        return legacySerializer().serialize(component);
+    private String serialize(Component component, boolean legacy) {
+        return serializer(legacy).serialize(component);
     }
 
-    private LegacyComponentSerializer legacySerializer() {
-        return LEGACY_SERIALIZER;
+    /**
+     * The legacy target only ever holds the sixteen colors, so the plain serializer is right for it.
+     * The hex target must round-trip the {@code §x§r§r§g§g§b§b} form the color engine emits, which
+     * the plain serializer neither parses nor writes: using it there downsampled every hex color to
+     * its nearest named one, for every message containing a {@code '<'}.
+     */
+    private LegacyComponentSerializer serializer(boolean legacy) {
+        return legacy ? LEGACY_SERIALIZER : HEX_SERIALIZER;
     }
 
     @FunctionalInterface
