@@ -161,7 +161,8 @@ class MultiColor implements ColorPattern {
     }
 
     private String trimGradientOverlap(String color, String text, boolean legacy) {
-        int trimLength = PrismaticAPI.fromString(color, legacy).toString().length() + 1;
+        String hex = color.startsWith("#") ? color.substring(1) : color;
+        int trimLength = PrismaticAPI.fromString(hex, legacy).toString().length() + 1;
         return text.length() > trimLength ? text.substring(trimLength) : "";
     }
 
