@@ -26,9 +26,12 @@ repositories {
 }
 
 dependencies {
-    implementation("me.croabeast.vnc:VNC:$vncVersion") {
-        isTransitive = false
-    }
+    // Transitive on purpose: the published VNC jar is a fat jar with an empty pom, so this changes
+    // nothing there, but when settings.gradle.kts substitutes it for the local build the classes
+    // live in :core, :bukkit and friends, which only reach the compile classpath through :bootstrap.
+    implementation("me.croabeast.vnc:VNC:$vncVersion")
+    
+    // Stays non-transitive: :bootstrap already inlines every module, one jar is all that is embedded.
     embedded("me.croabeast.vnc:VNC:$vncVersion") {
         isTransitive = false
     }
