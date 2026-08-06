@@ -56,7 +56,9 @@ final class ColorEngine {
     private ChatColor fromNonBlankString(String string) {
         ChatColor color = ChatColor.WHITE;
 
-        string = string.matches("^[&\\u00A7]x") ? string.substring(2) : string;
+        // matches() spans the whole input, so the old "^[&§]x" only ever hit a two-character
+        // string and the documented &xff8800 form fell through to the white fallback.
+        string = string.matches("(?i)^[&\\u00A7]x.+") ? string.substring(2) : string;
         string = string.replace("&", "").replace("\u00A7", "");
 
         ChatColor legacy = string.length() == 1 ? ChatColor.getByChar(string.toCharArray()[0]) : null;
