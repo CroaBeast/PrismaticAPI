@@ -51,6 +51,18 @@ dependencies {
     compileOnly("com.viaversion:viaversion-api:5.8.1") {
         isTransitive = false
     }
+
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    testImplementation("org.spigotmc:spigot-api:1.16.5-R0.1-SNAPSHOT")
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("failed")
+    }
 }
 
 java {
