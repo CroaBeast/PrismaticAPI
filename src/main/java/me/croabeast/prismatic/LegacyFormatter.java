@@ -19,6 +19,11 @@ final class LegacyFormatter implements Formatter<String> {
     }
 
     @Override
+    public ChatColor fromString(String string) {
+        return core.fromString(string);
+    }
+
+    @Override
     public String applyColor(Color color, String string, boolean legacy) {
         return core.applyColor(color, string, legacy);
     }
