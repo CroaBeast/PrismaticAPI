@@ -21,12 +21,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # settings.gradle.kts picks this checkout up as an included build. Keep the path in sync with
+      # the candidates listed there, otherwise the substitution silently stops applying.
       - name: Checkout VNC dependency
         uses: actions/checkout@v4
         with:
           repository: CroaBeast/VNC
           path: VNC
-          ref: 7759b4a5df298de36570f887218dcb6db790edc3
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
