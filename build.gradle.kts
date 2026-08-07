@@ -10,7 +10,7 @@ version = "2.0.0"
 
 val vncVersion = "1.3.0"
 
-val embedded by configurations.creating {
+val embedded = configurations.create("embedded") {
     isCanBeConsumed = false
     isCanBeResolved = true
 }
@@ -93,6 +93,10 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    // zipTree() over resolved files drops the artifact's producer task, so with the composite build
+    // substitution nothing schedules :VNC:bootstrap:jar before this task runs.
+    dependsOn(embedded)
 
     from({
         embedded
