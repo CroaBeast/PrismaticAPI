@@ -8,7 +8,7 @@ plugins {
 group = "me.croabeast"
 version = "2.0.0"
 
-val vncVersion = "1.2.1"
+val vncVersion = "1.3.0"
 
 val embedded by configurations.creating {
     isCanBeConsumed = false
