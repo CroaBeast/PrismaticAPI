@@ -64,6 +64,14 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
 
     private static final TagResolver STANDARD_TAGS = TagResolver.standard();
 
+    /**
+     * A legacy colour code clears the decorations that are active, which a MiniMessage colour tag
+     * does not. Without closing them, a {@code &m} bleeds into every segment that follows it.
+     * {@code <reset>} would close them too, but it also closes any open click or hover event.
+     */
+    private static final String CLEAR_DECORATIONS =
+            "<!bold><!italic><!underlined><!strikethrough><!obfuscated>";
+
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
 
@@ -173,13 +181,19 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
 
     private String normalizeMiniMessage(String string) {
         for (Pattern pattern : SINGLE_COLOR_PATTERNS) {
-            string = replaceMatches(string, pattern, matcher -> "<#" + matcher.group(1) + ">");
+            string = replaceMatches(string, pattern, matcher -> CLEAR_DECORATIONS + "<#" + matcher.group(1) + ">");
         }
 
         return replaceMatches(string, LEGACY_CODE_PATTERN, matcher -> legacyTag(matcher.group(1).charAt(0)));
     }
 
     private String legacyTag(char code) {
+        char lower = Character.toLowerCase(code);
+        boolean colour = (lower >= '0' && lower <= '9') || (lower >= 'a' && lower <= 'f');
+        return colour ? CLEAR_DECORATIONS + namedTag(code) : namedTag(code);
+    }
+
+    private String namedTag(char code) {
         switch (Character.toLowerCase(code)) {
             case '0':
                 return "<black>";
