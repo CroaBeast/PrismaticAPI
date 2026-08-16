@@ -42,8 +42,12 @@ final class PrismaticCore {
 
     private String colorizeNonBlank(@Nullable Player player, String string) {
         boolean legacy = shouldUseLegacyColors(player);
-        return string.indexOf('<') != -1 && AdventureAccess.isAvailable() ?
-                AdventureAccess.bridge(this).colorizeLegacy(string, legacy) :
+        if (string.indexOf('<') == -1 || !AdventureAccess.isAvailable())
+            return applyLegacyPipeline(string, legacy);
+
+        AdventureBridge bridge = AdventureAccess.bridge(this);
+        return bridge.hasMarkup(string) ?
+                bridge.colorizeLegacy(string, legacy) :
                 applyLegacyPipeline(string, legacy);
     }
 

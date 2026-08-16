@@ -15,8 +15,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,6 +56,13 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
     };
 
     private static final Pattern LEGACY_CODE_PATTERN = Pattern.compile("(?i)[&\\u00A7]([0-9a-fk-or])");
+
+    private static final Pattern TAG_PATTERN = Pattern.compile("(?i)</?([a-z\\d_#-]+)(?::[^<>]*)?>");
+
+    /** Gradient and rainbow shorthands owned by Prismatic, which the standard resolver knows nothing about. */
+    private static final Set<String> PRISMATIC_TAGS = new HashSet<>(Arrays.asList("g", "r"));
+
+    private static final TagResolver STANDARD_TAGS = TagResolver.standard();
 
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
@@ -134,9 +145,22 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
     @Override
     public String colorizeLegacy(String string, boolean legacy) {
         return StringUtils.isBlank(string) ? string == null ? "" : string :
-                string.indexOf('<') == -1 ?
+                !hasMarkup(string) ?
                         core.applyLegacyPipeline(string, legacy) :
                         serialize(colorizeComponent(string, legacy), legacy);
+    }
+
+    @Override
+    public boolean hasMarkup(String string) {
+        if (StringUtils.isBlank(string) || string.indexOf('<') == -1) return false;
+
+        Matcher matcher = TAG_PATTERN.matcher(string);
+        while (matcher.find()) {
+            String name = matcher.group(1).toLowerCase(Locale.ENGLISH);
+            if (PRISMATIC_TAGS.contains(name) || STANDARD_TAGS.has(name)) return true;
+        }
+
+        return false;
     }
 
     private TokenizedComponents maskPrismaticBlocks(String string, boolean legacy) {
@@ -265,7 +289,7 @@ final class Adventure implements Formatter<Component>, AdventureBridge {
     }
 
     private Component colorizeComponent(String string, boolean legacy) {
-        return string.indexOf('<') == -1 ?
+        return !hasMarkup(string) ?
                 deserialize(core.applyLegacyPipeline(string, legacy), legacy) :
                 colorizeMiniMessageComponent(string, legacy);
     }

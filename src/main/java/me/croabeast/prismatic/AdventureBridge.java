@@ -31,6 +31,19 @@ interface AdventureBridge {
     String colorizeLegacy(String string, boolean legacy);
 
     /**
+     * Checks whether a string carries markup that the Adventure pipeline actually has to parse.
+     *
+     * <p>A bare {@code '<'} is not enough: a legacy header such as {@code &8<&d&l Top &8>} contains
+     * one without holding a single tag, and routing it through MiniMessage changes how its colour
+     * codes behave. A tag counts when its name resolves against the standard MiniMessage resolver
+     * or against the Prismatic-only gradient and rainbow shorthands.
+     *
+     * @param string the raw text to inspect; may be {@code null} or blank
+     * @return {@code true} when the string holds at least one recognized tag
+     */
+    boolean hasMarkup(String string);
+
+    /**
      * Removes MiniMessage formatting tags from a string using the Adventure MiniMessage API.
      *
      * <p>This method is preferred over a plain regex strip when Adventure is available because
