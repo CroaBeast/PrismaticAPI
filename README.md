@@ -44,7 +44,7 @@ repositories {
 }
 
 dependencies {
-    implementation("me.croabeast:PrismaticAPI:1.5.0")
+    implementation("me.croabeast:PrismaticAPI:2.0.2")
 }
 ```
 
@@ -56,7 +56,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'me.croabeast:PrismaticAPI:1.5.0'
+    implementation 'me.croabeast:PrismaticAPI:2.0.2'
 }
 ```
 
@@ -71,7 +71,7 @@ dependencies {
 <dependency>
     <groupId>me.croabeast</groupId>
     <artifactId>PrismaticAPI</artifactId>
-    <version>1.5.0</version>
+    <version>2.0.2</version>
 </dependency>
 ```
 
