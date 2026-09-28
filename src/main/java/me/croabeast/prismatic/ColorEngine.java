@@ -116,11 +116,12 @@ final class ColorEngine {
 
     private ChatColor getClosestColor(Color color) {
         Color nearestColor = null;
-        double nearestDistance = Integer.MAX_VALUE;
+        int nearestDistance = Integer.MAX_VALUE;
         for (Color entry : COLOR_MAP.keySet()) {
-            double distance = Math.pow(color.getRed() - entry.getRed(), 2) +
-                    Math.pow(color.getBlue() - entry.getBlue(), 2) +
-                    Math.pow(color.getGreen() - entry.getGreen(), 2);
+            int red = color.getRed() - entry.getRed();
+            int green = color.getGreen() - entry.getGreen();
+            int blue = color.getBlue() - entry.getBlue();
+            int distance = red * red + green * green + blue * blue;
 
             if (nearestDistance <= distance)
                 continue;
