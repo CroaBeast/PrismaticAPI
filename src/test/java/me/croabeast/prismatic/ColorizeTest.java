@@ -97,6 +97,15 @@ class ColorizeTest {
     }
 
     @Test
+    void applyGradientEndsOnTheEndColorForLongText() {
+        String text = new String(new char[100]).replace('\0', 'x');
+        String result = PrismaticAPI.applyGradient(text, Color.RED, Color.BLUE, false);
+
+        assertTrue(result.startsWith(ChatColor.of(Color.RED) + "x"), result);
+        assertTrue(result.endsWith(ChatColor.of(Color.BLUE) + "x"), result);
+    }
+
+    @Test
     void applyGradientPreservesSpecialFormatting() {
         String result = PrismaticAPI.applyGradient("&lHello", Color.RED, Color.GREEN, true);
         assertTrue(result.contains(SECTION + "l") || result.contains("&l"), result);

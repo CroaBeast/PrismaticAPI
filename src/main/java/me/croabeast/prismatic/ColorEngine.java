@@ -137,25 +137,23 @@ final class ColorEngine {
 
     private ChatColor[] createGradient(Color start, Color end, int step, boolean legacy) {
         ChatColor[] colors = new ChatColor[step];
-        int stepR = Math.abs(start.getRed() - end.getRed()) / (step - 1);
-        int stepG = Math.abs(start.getGreen() - end.getGreen()) / (step - 1);
-        int stepB = Math.abs(start.getBlue() - end.getBlue()) / (step - 1);
-        int[] direction = new int[] {
-                start.getRed() < end.getRed() ? 1 : -1,
-                start.getGreen() < end.getGreen() ? 1 : -1,
-                start.getBlue() < end.getBlue() ? 1 : -1
-        };
 
+        // Interpolating each channel directly lands the last character on the end color; a
+        // truncated per-step delta fell short of it on long text.
         for (int i = 0; i < step; i++) {
             Color color = new Color(
-                    start.getRed() + ((stepR * i) * direction[0]),
-                    start.getGreen() + ((stepG * i) * direction[1]),
-                    start.getBlue() + ((stepB * i) * direction[2])
+                    interpolate(start.getRed(), end.getRed(), i, step - 1),
+                    interpolate(start.getGreen(), end.getGreen(), i, step - 1),
+                    interpolate(start.getBlue(), end.getBlue(), i, step - 1)
             );
             colors[i] = getBukkit(color, legacy);
         }
 
         return colors;
+    }
+
+    private int interpolate(int from, int to, int index, int last) {
+        return from + Math.round((to - from) * (float) index / last);
     }
 
     private ChatColor[] createRainbow(int step, float sat, boolean legacy) {
