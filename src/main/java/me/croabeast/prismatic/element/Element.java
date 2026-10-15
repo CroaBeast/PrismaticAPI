@@ -628,6 +628,33 @@ public final class Element {
         }
 
         /**
+         * Applies a click event to every segment that has none, keeping existing ones.
+         *
+         * @param click action to perform
+         * @param value payload delivered to the action
+         * @return this builder
+         */
+        @NotNull
+        public Builder clickMissing(@NotNull Click click, @Nullable String value) {
+            String payload = value == null ? "" : value;
+            segments.replaceAll(segment -> segment.click == null ? segment.withClick(click, payload) : segment);
+            return this;
+        }
+
+        /**
+         * Applies a text hover to every segment that has none, keeping existing ones.
+         *
+         * @param lines hover lines
+         * @return this builder
+         */
+        @NotNull
+        public Builder hoverMissing(@NotNull List<String> lines) {
+            Hover hover = Hover.text(lines.size() == 1 ? ElementParser.splitHoverLines(lines.get(0)) : lines);
+            segments.replaceAll(segment -> segment.hover == null ? segment.withHover(hover) : segment);
+            return this;
+        }
+
+        /**
          * Builds the immutable element.
          *
          * @return a new element
