@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "me.croabeast"
-version = "2.0.2"
+version = "2.0.3"
 
 val vncVersion = "1.3.2"
 
