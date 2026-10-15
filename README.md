@@ -6,7 +6,7 @@
 
 RGB colors · Gradients · Rainbows · MiniMessage · Interactive Messages
 
-[![Version](https://img.shields.io/badge/version-1.5.0-blueviolet?style=flat-square)](https://github.com/CroaBeast/PrismaticAPI)
+[![Version](https://img.shields.io/badge/version-2.0.3-blueviolet?style=flat-square)](https://github.com/CroaBeast/PrismaticAPI)
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.16.5+-green?style=flat-square)](https://spigotmc.org)
 [![Java](https://img.shields.io/badge/Java-8+-orange?style=flat-square)](https://java.com)
 [![Adventure](https://img.shields.io/badge/Adventure-optional-blue?style=flat-square)](https://docs.advntr.dev)
@@ -44,7 +44,7 @@ repositories {
 }
 
 dependencies {
-    implementation("me.croabeast:PrismaticAPI:2.0.2")
+    implementation("me.croabeast:PrismaticAPI:2.0.3")
 }
 ```
 
@@ -56,7 +56,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'me.croabeast:PrismaticAPI:2.0.2'
+    implementation 'me.croabeast:PrismaticAPI:2.0.3'
 }
 ```
 
@@ -71,7 +71,7 @@ dependencies {
 <dependency>
     <groupId>me.croabeast</groupId>
     <artifactId>PrismaticAPI</artifactId>
-    <version>2.0.2</version>
+    <version>2.0.3</version>
 </dependency>
 ```
 
